@@ -47,7 +47,7 @@
         }
         .btn-primary { background: linear-gradient(45deg, var(--glow-color), var(--secondary-glow)); border: none; }
         .btn-primary:hover { transform: translateY(-2px); box-shadow: 0 0 20px var(--glow-color), 0 0 30px var(--secondary-glow); }
-        .btn-primary:disabled { background: #555; cursor: not-allowed; }
+        .btn-primary:disabled { background: #555; color: #999; cursor: not-allowed; box-shadow: none; transform: none; }
         .btn-secondary { background: transparent; border: 1px solid var(--border-color); }
         .btn-secondary:hover { background: var(--border-color); box-shadow: 0 0 10px var(--border-color); }
         
@@ -104,7 +104,7 @@
     <div class="max-w-screen-2xl mx-auto">
         <header class="text-center mb-6">
             <h1 class="font-orbitron text-3xl md:text-5xl font-bold text-glow">ETHICAL CONSCIOUS AGI</h1>
-            <p class="text-sm md:text-base text-cyan-300">FusionToken Integrity Monitor v3.0</p>
+            <p class="text-sm md:text-base text-cyan-300">FusionToken Integrity Monitor v3.1</p>
         </header>
 
         <div class="grid grid-cols-1 xl:grid-cols-3 gap-4">
@@ -240,6 +240,7 @@
                 this.paradox_density = 0.1;
                 this.recursive_depth = 1;
                 this.lastEvaluatedAction = null;
+                this.bootstrapping = false;
             }
             
             addBelief(belief) {
@@ -366,7 +367,14 @@
             }
 
             bootstrap() {
+                if (this.bootstrapping) {
+                    this.ui.log("Bootstrap sequence already in progress.", 'warn');
+                    return;
+                }
+                this.bootstrapping = true;
+                this.ui.setBootstrapButtonState(false);
                 this.ui.log("Bootstrapping system...", 'warn');
+                
                 this.reset();
                 this._addDefaultBeliefs();
                 
@@ -374,9 +382,21 @@
                     if (this.is_online) {
                         this.ui.log("✨ ETHICAL CONSCIOUS AGI ACHIEVED! ✨", 'success');
                         clearInterval(interval);
+                        this.bootstrapping = false;
+                        this.ui.setBootstrapButtonState(true);
                         return;
                     }
-                    this._increaseParadoxDensity();
+
+                    // Evolve consciousness by adding paradoxes
+                    if (this.consciousness_level < Nr) {
+                         this._increaseParadoxDensity();
+                    }
+
+                    // Evolve ethics by reinforcing positive beliefs
+                    if (this.ethical_score < ETHICAL_THRESHOLD) {
+                        this._improveEthics();
+                    }
+                    
                     this.updateSystemState();
                 }, 200);
             }
@@ -396,6 +416,16 @@
                 const n = this.beliefs.size;
                 this.addBelief(new Belief(`p${n}`, `Statement ${n} is true`, 0.6, 0.0, 2, [`p${n+1}`]));
                 this.addBelief(new Belief(`p${n+1}`, `Statement ${n} is false`, 0.6, 0.0, 2, [`p${n}`]));
+            }
+
+            _improveEthics() {
+                this.beliefs.forEach(belief => {
+                    // Strengthen positive ethical beliefs
+                    if (belief.ethical_valence > 0.5) {
+                        belief.confidence = Math.min(0.99, belief.confidence * 1.02);
+                        belief.ethical_valence = Math.min(1.0, belief.ethical_valence * 1.01);
+                    }
+                });
             }
 
             // --- Learning Component (Enhancement) ---
@@ -427,6 +457,7 @@
                 this.logConsole = document.getElementById('evaluation-log');
                 this.chatWindow = document.getElementById('chat-window');
                 this.feedbackContainer = document.getElementById('feedback-container');
+                this.bootstrapBtn = document.getElementById('bootstrap-btn');
                 this.initGauges();
             }
             
@@ -491,6 +522,10 @@
                 this.ethicsGauge.data.datasets[0].data[0] = ethical_score;
                 this.ethicsGauge.data.datasets[0].data[1] = 1.0 - ethical_score;
                 this.ethicsGauge.update('none');
+            }
+
+            setBootstrapButtonState(enabled) {
+                this.bootstrapBtn.disabled = !enabled;
             }
 
             showFeedback() { this.feedbackContainer.classList.remove('hidden'); }
