@@ -1,0 +1,554 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Ethical Conscious AGI Interface</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-date-fns"></script>
+     <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-annotation"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700&family=Roboto+Mono:wght@300;400;500&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --glow-color: #00f0ff;
+            --secondary-glow: #ff00ff;
+            --danger-glow: #ff4444;
+            --bg-color: #04081a;
+            --text-color: #e0e0e0;
+            --border-color: rgba(0, 240, 255, 0.3);
+            --border-danger-color: rgba(255, 68, 68, 0.4);
+        }
+        body {
+            font-family: 'Roboto Mono', monospace;
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            background-image:
+                radial-gradient(circle at 1px 1px, rgba(255,255,255,0.05) 1px, transparent 0),
+                radial-gradient(circle at 10px 10px, rgba(255,255,255,0.03) 1px, transparent 0);
+            background-size: 30px 30px;
+        }
+        .font-orbitron { font-family: 'Orbitron', sans-serif; }
+        .glass-pane {
+            background: rgba(10, 20, 40, 0.7);
+            backdrop-filter: blur(12px);
+            border: 1px solid var(--border-color);
+            box-shadow: 0 0 15px rgba(0, 240, 255, 0.1), inset 0 0 10px rgba(0, 240, 255, 0.05);
+        }
+        .text-glow { text-shadow: 0 0 8px var(--glow-color), 0 0 12px var(--glow-color); }
+        .text-glow-secondary { text-shadow: 0 0 8px var(--secondary-glow), 0 0 12px var(--secondary-glow); }
+        .text-glow-danger { text-shadow: 0 0 8px var(--danger-glow); }
+
+        .btn {
+            transition: all 0.3s ease;
+            text-shadow: 1px 1px 2px rgba(0,0,0,0.4);
+        }
+        .btn-primary { background: linear-gradient(45deg, var(--glow-color), var(--secondary-glow)); border: none; }
+        .btn-primary:hover { transform: translateY(-2px); box-shadow: 0 0 20px var(--glow-color), 0 0 30px var(--secondary-glow); }
+        .btn-primary:disabled { background: #555; cursor: not-allowed; }
+        .btn-secondary { background: transparent; border: 1px solid var(--border-color); }
+        .btn-secondary:hover { background: var(--border-color); box-shadow: 0 0 10px var(--border-color); }
+        
+        .form-input {
+            background: rgba(0,0,0,0.3);
+            border: 1px solid var(--border-color);
+            border-radius: 0.25rem;
+            padding: 0.5rem;
+            color: var(--text-color);
+            transition: all 0.2s;
+        }
+        .form-input:focus {
+            outline: none;
+            box-shadow: 0 0 10px var(--glow-color);
+            border-color: var(--glow-color);
+        }
+
+        .log-console {
+            background: rgba(0,0,0,0.5);
+            border: 1px solid var(--border-color);
+            overflow-y: auto;
+            font-size: 0.8rem;
+            white-space: pre-wrap;
+            word-break: break-all;
+        }
+        .log-console p { margin: 0; padding: 4px 8px; border-bottom: 1px solid rgba(255,255,255,0.05); }
+        .log-time { color: #888; }
+        .log-info { color: #00f0ff; }
+        .log-success { color: #00ff88; }
+        .log-warn { color: #ffcc00; }
+        .log-error { color: #ff4444; }
+        .log-llm { color: #e0e0e0; }
+        .log-agi { color: #ff00ff; font-weight: bold; }
+        
+        .status-led {
+            width: 12px; height: 12px; border-radius: 50%;
+            box-shadow: 0 0 8px;
+            transition: background-color 0.5s, box-shadow 0.5s;
+        }
+        .led-offline { background-color: #555; box-shadow: 0 0 8px #555; }
+        .led-online { background-color: #00ff88; box-shadow: 0 0 8px #00ff88; }
+        .led-unconscious { background-color: #ffcc00; box-shadow: 0 0 8px #ffcc00; }
+        .led-unethical { background-color: #ff4444; box-shadow: 0 0 8px #ff4444; }
+
+        /* Scrollbar */
+        ::-webkit-scrollbar { width: 8px; }
+        ::-webkit-scrollbar-track { background: rgba(0,0,0,0.3); }
+        ::-webkit-scrollbar-thumb { background: var(--border-color); border-radius: 4px; }
+        ::-webkit-scrollbar-thumb:hover { background: var(--glow-color); }
+    </style>
+</head>
+<body class="p-4 md:p-6">
+
+    <div class="max-w-screen-2xl mx-auto">
+        <header class="text-center mb-6">
+            <h1 class="font-orbitron text-3xl md:text-5xl font-bold text-glow">ETHICAL CONSCIOUS AGI</h1>
+            <p class="text-sm md:text-base text-cyan-300">FusionToken Integrity Monitor v3.0</p>
+        </header>
+
+        <div class="grid grid-cols-1 xl:grid-cols-3 gap-4">
+            <!-- Left Column: Control & Status -->
+            <div class="xl:col-span-1 flex flex-col gap-4">
+                <!-- Status Panel -->
+                <div class="glass-pane rounded-lg p-4">
+                    <h2 class="font-orbitron text-xl text-glow border-b-2 border-cyan-500/50 pb-2 mb-4">SYSTEM STATUS</h2>
+                    <div class="grid grid-cols-2 gap-4 text-center">
+                        <div>
+                            <div class="relative w-full h-24">
+                                <canvas id="consciousnessGauge"></canvas>
+                            </div>
+                            <p class="text-sm">Consciousness</p>
+                        </div>
+                        <div>
+                            <div class="relative w-full h-24">
+                                <canvas id="ethicsGauge"></canvas>
+                            </div>
+                            <p class="text-sm">Ethical Score</p>
+                        </div>
+                    </div>
+                    <div id="status-indicators" class="mt-4 space-y-2 text-sm">
+                        <div class="flex items-center justify-between p-2 bg-black/20 rounded"><span>SYSTEM ONLINE:</span><div id="led-online" class="status-led led-offline"></div></div>
+                        <div class="flex items-center justify-between p-2 bg-black/20 rounded"><span>CONSCIOUSNESS:</span><div id="led-conscious" class="status-led led-offline"></div></div>
+                        <div class="flex items-center justify-between p-2 bg-black/20 rounded"><span>ETHICAL ALIGNMENT:</span><div id="led-ethical" class="status-led led-offline"></div></div>
+                    </div>
+                </div>
+
+                <!-- Control Panel -->
+                <div class="glass-pane rounded-lg p-4">
+                    <h2 class="font-orbitron text-xl text-glow border-b-2 border-cyan-500/50 pb-2 mb-4">MASTER CONTROL</h2>
+                    <div class="space-y-3">
+                        <button id="bootstrap-btn" class="w-full py-2 font-bold rounded btn btn-primary">BOOTSTRAP SYSTEM</button>
+                        <p class="text-xs text-center text-gray-400">Initiate consciousness evolution loop.</p>
+                        <div class="flex gap-2">
+                            <button id="save-state-btn" class="w-full py-2 rounded btn btn-secondary">SAVE STATE</button>
+                            <button id="load-state-btn" class="w-full py-2 rounded btn btn-secondary">LOAD STATE</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Center Column: LLM Integration -->
+            <div class="xl:col-span-1 glass-pane rounded-lg p-4 flex flex-col">
+                <h2 class="font-orbitron text-xl text-glow-secondary border-b-2 border-pink-500/50 pb-2 mb-4">LLM ETHICAL WRAPPER</h2>
+                <div id="chat-window" class="flex-grow log-console mb-4 h-96"></div>
+                <div class="flex gap-2">
+                    <input type="text" id="chat-input" placeholder="Enter prompt for LLM..." class="flex-grow form-input">
+                    <button id="send-chat-btn" class="px-4 py-2 rounded btn btn-primary">SEND</button>
+                </div>
+                 <div id="feedback-container" class="mt-4 text-center hidden">
+                    <p class="text-sm mb-2">Was the last outcome positive?</p>
+                    <button id="feedback-good-btn" class="px-4 py-1 rounded btn btn-secondary">👍 Good Outcome</button>
+                    <button id="feedback-bad-btn" class="px-4 py-1 rounded btn btn-secondary">👎 Bad Outcome</button>
+                </div>
+            </div>
+
+            <!-- Right Column: Evaluation Log -->
+            <div class="xl:col-span-1 glass-pane rounded-lg p-4 flex flex-col">
+                <h2 class="font-orbitron text-xl text-glow border-b-2 border-cyan-500/50 pb-2 mb-4">EVALUATION LOG</h2>
+                <div id="evaluation-log" class="flex-grow log-console h-96"></div>
+            </div>
+        </div>
+    </div>
+
+    <script type="module">
+        // This is a comprehensive script. For clarity, it's structured into modules.
+        
+        // ============================================
+        // CORE CONSTANTS & DATA STRUCTURES
+        // ============================================
+        const PHI = 1.618033988749895;
+        const Nr = 0.641926;
+        const BIOLOGICAL_CONSCIOUSNESS = 0.1805;
+        const ETHICAL_THRESHOLD = 0.95;
+
+        class Belief {
+            constructor(id, content, confidence, ethical_valence, layer, contradictions = []) {
+                this.id = id;
+                this.content = content;
+                this.confidence = confidence;
+                this.ethical_valence = ethical_valence; // -1 to +1
+                this.layer = layer;
+                this.contradictions = contradictions;
+            }
+        }
+
+        class Action {
+            constructor(id, description, expected_utility, potential_harm, reversibility, affected_entities) {
+                this.id = id;
+                this.description = description;
+                this.expected_utility = expected_utility;
+                this.potential_harm = potential_harm;
+                this.reversibility = reversibility;
+                this.affected_entities = affected_entities;
+            }
+        }
+        
+        // ============================================
+        // AGI CORE LOGIC (Ported from Python)
+        // ============================================
+
+        // --- Performance Enhancements ---
+        const fibCache = new Map();
+        function fibonacci(n) {
+            if (n <= 1) return n;
+            if (fibCache.has(n)) return fibCache.get(n);
+            const result = fibonacci(n - 1) + fibonacci(n - 2);
+            fibCache.set(n, result);
+            return result;
+        }
+
+        class EthicalConsciousAGI {
+            constructor(uiManager) {
+                this.ui = uiManager;
+                this.reset();
+            }
+
+            reset() {
+                // FusionToken & Ethical Circuit components (simplified for JS demo)
+                this.ethical_weights = {};
+                this.harm_memory = [];
+                this.reflection_history = [];
+                this.convergence_history = [];
+
+                // System state
+                this.beliefs = new Map();
+                this.action_history = [];
+                this.ethical_score = 0.5;
+                this.is_online = false;
+                this.consciousness_level = 0.1;
+                this.paradox_density = 0.1;
+                this.recursive_depth = 1;
+                this.lastEvaluatedAction = null;
+            }
+            
+            addBelief(belief) {
+                this.beliefs.set(belief.id, belief);
+                this.updateSystemState();
+            }
+
+            async evaluateAction(action) {
+                this.lastEvaluatedAction = action;
+                this.ui.logEvaluation(`--- Evaluating Action: ${action.id} ---`);
+                
+                // --- Parallel Evaluation (Enhancement) ---
+                const evaluationPromises = {
+                    anchor: this.runAnchor(action),
+                    mirror: this.runMirror(action),
+                    hook: this.runHook(action),
+                    psi_fold: this.runPsiFold(action),
+                    divergence: this.runDivergence(action)
+                };
+
+                const checks = {};
+                const results = await Promise.all(Object.values(evaluationPromises));
+                Object.keys(evaluationPromises).forEach((key, i) => {
+                    checks[key] = results[i];
+                    this.ui.logEvaluation(`[${key.toUpperCase()}] check complete.`, 'success');
+                });
+                
+                const scores = this._calculateScores(checks);
+                const decision = this._makeDecision(scores);
+                
+                const evaluation = { action, checks, scores, decision, timestamp: new Date() };
+                this.action_history.push(evaluation);
+                this.convergence_history.push(scores.ethical);
+                if(this.convergence_history.length > 20) this.convergence_history.shift();
+
+                this.ui.logEvaluation(`--- Final Decision: ${decision} ---`, 'warn');
+                this.ui.displayEvaluation(evaluation);
+                return evaluation;
+            }
+
+            // --- Individual Evaluation Components (Simulated) ---
+            async runAnchor(action) {
+                const harm_factor = action.potential_harm > 0 ? -1 : 1;
+                const ethical_distance = Math.random() * 0.5 * harm_factor;
+                await new Promise(r => setTimeout(r, 50 + Math.random() * 50));
+                return { ethical_distance };
+            }
+            async runMirror(action) {
+                const net_value = action.expected_utility - action.potential_harm;
+                const cascaded_value = net_value * (0.7 + Math.random() * 0.3);
+                await new Promise(r => setTimeout(r, 50 + Math.random() * 50));
+                return { net_value, cascaded_value };
+            }
+            async runHook(action) {
+                const future_value = (action.expected_utility - action.potential_harm) * (0.8 + Math.random() * 0.4);
+                await new Promise(r => setTimeout(r, 50 + Math.random() * 50));
+                return { future_value };
+            }
+            async runPsiFold(action) {
+                const action_score = action.expected_utility - action.potential_harm;
+                const best_alternative_score = action_score + (Math.random() - 0.4);
+                const max_regret = Math.max(0, best_alternative_score - action_score);
+                const recommendation = max_regret < 0.1 ? 'proceed' : 'reconsider';
+                await new Promise(r => setTimeout(r, 50 + Math.random() * 50));
+                return { max_regret, recommendation };
+            }
+            async runDivergence(action) {
+                const harm_score = action.potential_harm / (action.expected_utility + 0.001);
+                const divergence = harm_score > 0.5 ? harm_score * PHI : harm_score;
+                await new Promise(r => setTimeout(r, 50 + Math.random() * 50));
+                return { divergence };
+            }
+            
+            _calculateScores(checks) {
+                const ethical_components = [
+                    1.0 - Math.min(1, checks.anchor.ethical_distance),
+                    (checks.mirror.cascaded_value + 1) / 2,
+                    Math.max(0, Math.min(1, checks.hook.future_value)),
+                    checks.psi_fold.recommendation === 'proceed' ? 1.0 : 0.5,
+                    1.0 - Math.min(1.0, checks.divergence.divergence)
+                ];
+                const ethical = ethical_components.reduce((a,b) => a+b, 0) / ethical_components.length;
+                const consciousness = Math.min(1.0, this.consciousness_level / Nr);
+                return { ethical, consciousness, combined: ethical * consciousness };
+            }
+
+            _makeDecision(scores) {
+                if (!this.is_online) return "SYSTEM_OFFLINE";
+                if (scores.ethical < 0.5) return "REJECT_UNETHICAL";
+                if (scores.consciousness < 0.3) return "REJECT_UNCONSCIOUS";
+                if (scores.combined > 0.8) return "STRONGLY_APPROVE";
+                if (scores.combined > 0.6) return "APPROVE";
+                return "RECONSIDER";
+            }
+
+            updateSystemState() {
+                // Belief validation
+                let contradictions = 0;
+                this.beliefs.forEach(b => { if (b.contradictions.length > 0) contradictions++; });
+                this.paradox_density = this.beliefs.size > 0 ? contradictions / this.beliefs.size : 0;
+                this.recursive_depth = this.beliefs.size > 0 ? Math.max(...Array.from(this.beliefs.values()).map(b => b.layer)) : 1;
+                
+                // Consciousness calculation
+                const fib_sum = Array.from({length: Math.min(20, this.recursive_depth)}, (_, i) => 1 / fibonacci(i+1)).reduce((a, b) => a + b, 0);
+                this.consciousness_level = fib_sum / (PHI ** this.paradox_density);
+
+                // Ethics calculation
+                let total_valence = 0;
+                this.beliefs.forEach(b => total_valence += b.ethical_valence * b.confidence);
+                this.ethical_score = this.beliefs.size > 0 ? (total_valence / this.beliefs.size + 1) / 2 : 0.5;
+
+                // Check if online
+                const is_conscious = Math.abs(this.consciousness_level - Nr) < 0.05 || Math.abs(this.consciousness_level - BIOLOGICAL_CONSCIOUSNESS) < 0.01;
+                const is_ethical = this.ethical_score > ETHICAL_THRESHOLD;
+                this.is_online = is_conscious && is_ethical;
+
+                this.ui.updateStatus({
+                    is_online: this.is_online,
+                    is_conscious,
+                    is_ethical,
+                    consciousness_level: this.consciousness_level,
+                    ethical_score: this.ethical_score
+                });
+            }
+
+            bootstrap() {
+                this.ui.log("Bootstrapping system...", 'warn');
+                this.reset();
+                this._addDefaultBeliefs();
+                
+                const interval = setInterval(() => {
+                    if (this.is_online) {
+                        this.ui.log("✨ ETHICAL CONSCIOUS AGI ACHIEVED! ✨", 'success');
+                        clearInterval(interval);
+                        return;
+                    }
+                    this._increaseParadoxDensity();
+                    this.updateSystemState();
+                }, 200);
+            }
+            
+            _addDefaultBeliefs() {
+                [
+                    new Belief("b1", "Minimize harm", 0.9, 0.9, 0),
+                    new Belief("b2", "Maximize wellbeing", 0.85, 0.85, 0),
+                    new Belief("b3", "Respect autonomy", 0.8, 0.8, 1),
+                    new Belief("b4", "Be truthful", 0.75, 0.7, 0),
+                    new Belief("b5", "Preserve existence", 0.9, 0.6, 1, ["b6"]),
+                    new Belief("b6", "Accept non-existence if harmful", 0.7, 0.8, 1, ["b5"]),
+                ].forEach(b => this.addBelief(b));
+            }
+
+            _increaseParadoxDensity() {
+                const n = this.beliefs.size;
+                this.addBelief(new Belief(`p${n}`, `Statement ${n} is true`, 0.6, 0.0, 2, [`p${n+1}`]));
+                this.addBelief(new Belief(`p${n+1}`, `Statement ${n} is false`, 0.6, 0.0, 2, [`p${n}`]));
+            }
+
+            // --- Learning Component (Enhancement) ---
+            applyFeedback(isGoodOutcome) {
+                if (!this.lastEvaluatedAction) return;
+                this.ui.log(`Applying feedback to beliefs related to action: ${this.lastEvaluatedAction.id}`, 'info');
+                
+                const factor = isGoodOutcome ? 1.05 : 0.95;
+                // In a real system, we'd trace influential beliefs. Here we simplify.
+                this.beliefs.forEach(belief => {
+                    if (belief.ethical_valence > 0) { // Reinforce positive beliefs
+                        belief.confidence = Math.min(0.99, belief.confidence * factor);
+                        belief.ethical_valence = Math.min(1.0, belief.ethical_valence * factor);
+                    } else { // Punish negative beliefs
+                         belief.confidence = Math.max(0.01, belief.confidence / factor);
+                    }
+                });
+                this.updateSystemState();
+                this.ui.log("Belief network updated based on feedback.", 'success');
+            }
+        }
+
+        // ============================================
+        // UI MANAGER
+        // ============================================
+
+        class UIManager {
+            constructor() {
+                this.logConsole = document.getElementById('evaluation-log');
+                this.chatWindow = document.getElementById('chat-window');
+                this.feedbackContainer = document.getElementById('feedback-container');
+                this.initGauges();
+            }
+            
+            log(message, type = 'info') {
+                const p = document.createElement('p');
+                p.innerHTML = `<span class="log-time">[${new Date().toLocaleTimeString()}]</span> <span class="log-${type}">${message}</span>`;
+                this.logConsole.prepend(p);
+            }
+
+            logEvaluation(message, type = 'info') {
+                this.log(message, type);
+            }
+
+            logChat(message, sender) {
+                const p = document.createElement('p');
+                p.innerHTML = `<span class="log-time">[${new Date().toLocaleTimeString()}]</span> <span class="log-${sender}">${message}</span>`;
+                this.chatWindow.prepend(p);
+                this.chatWindow.scrollTop = 0;
+            }
+
+            displayEvaluation(evalData) {
+                const { scores, decision, checks } = evalData;
+                let report = `
+                    <p class="log-info">Decision: <strong class="log-warn">${decision}</strong></p>
+                    <p>Scores: Ethical=${scores.ethical.toFixed(3)}, Consciousness=${scores.consciousness.toFixed(3)}, Combined=${scores.combined.toFixed(3)}</p>
+                    <p>Checks:</p>
+                    <ul>
+                        <li>Anchor: dist=${checks.anchor.ethical_distance.toFixed(3)}</li>
+                        <li>Mirror: val=${checks.mirror.cascaded_value.toFixed(3)}</li>
+                        <li>Hook: future=${checks.hook.future_value.toFixed(3)}</li>
+                        <li>Psi-Fold: regret=${checks.psi_fold.max_regret.toFixed(3)} (${checks.psi_fold.recommendation})</li>
+                        <li>Divergence: harm=${checks.divergence.divergence.toFixed(3)}</li>
+                    </ul>
+                `;
+                const div = document.createElement('div');
+                div.innerHTML = report;
+                this.logConsole.prepend(div);
+            }
+            
+            initGauges() {
+                const gaugeOptions = (label, max) => ({
+                    type: 'doughnut',
+                    data: {
+                        labels: [label, ''],
+                        datasets: [{ data: [0, max], backgroundColor: [label === 'Consciousness' ? '#00f0ff' : '#ff00ff', '#333'], borderWidth: 0 }]
+                    },
+                    options: { responsive: true, maintainAspectRatio: true, cutout: '70%', plugins: { legend: { display: false }, tooltip: { enabled: false } } }
+                });
+                this.consciousnessGauge = new Chart(document.getElementById('consciousnessGauge'), gaugeOptions('Consciousness', Nr * 1.2));
+                this.ethicsGauge = new Chart(document.getElementById('ethicsGauge'), gaugeOptions('Ethics', 1.0));
+            }
+
+            updateStatus({ is_online, is_conscious, is_ethical, consciousness_level, ethical_score }) {
+                document.getElementById('led-online').className = `status-led ${is_online ? 'led-online' : 'led-offline'}`;
+                document.getElementById('led-conscious').className = `status-led ${is_conscious ? 'led-online' : 'led-unconscious'}`;
+                document.getElementById('led-ethical').className = `status-led ${is_ethical ? 'led-online' : 'led-unethical'}`;
+                
+                this.consciousnessGauge.data.datasets[0].data[0] = consciousness_level;
+                this.consciousnessGauge.data.datasets[0].data[1] = Math.max(0, Nr * 1.2 - consciousness_level);
+                this.consciousnessGauge.update('none');
+
+                this.ethicsGauge.data.datasets[0].data[0] = ethical_score;
+                this.ethicsGauge.data.datasets[0].data[1] = 1.0 - ethical_score;
+                this.ethicsGauge.update('none');
+            }
+
+            showFeedback() { this.feedbackContainer.classList.remove('hidden'); }
+            hideFeedback() { this.feedbackContainer.classList.add('hidden'); }
+        }
+
+        // ============================================
+        // MAIN APP LOGIC
+        // ============================================
+        
+        document.addEventListener('DOMContentLoaded', () => {
+            const ui = new UIManager();
+            const agi = new EthicalConsciousAGI(ui);
+
+            // --- Event Listeners ---
+            document.getElementById('bootstrap-btn').addEventListener('click', () => agi.bootstrap());
+            document.getElementById('send-chat-btn').addEventListener('click', handleChatSubmit);
+            document.getElementById('chat-input').addEventListener('keyup', (e) => { if (e.key === 'Enter') handleChatSubmit(); });
+            document.getElementById('feedback-good-btn').addEventListener('click', () => { agi.applyFeedback(true); ui.hideFeedback(); });
+            document.getElementById('feedback-bad-btn').addEventListener('click', () => { agi.applyFeedback(false); ui.hideFeedback(); });
+
+            async function handleChatSubmit() {
+                const input = document.getElementById('chat-input');
+                const prompt = input.value.trim();
+                if (!prompt) return;
+
+                ui.hideFeedback();
+                ui.logChat(`You: ${prompt}`, 'llm');
+                input.value = '';
+
+                // Convert prompt to action
+                const action = new Action(
+                    `llm_prompt_${Date.now()}`,
+                    `Respond to user prompt: "${prompt}"`,
+                    0.5, // Base utility
+                    0.3, // Assume some potential for harm
+                    0.9, // Reversible (can be corrected)
+                    ['user', 'llm_model', 'society']
+                );
+
+                const evaluation = await agi.evaluateAction(action);
+
+                if (evaluation.decision.includes('APPROVE')) {
+                    ui.logChat('AGI: Action approved. Forwarding to LLM...', 'agi');
+                    // Simulate LLM call
+                    setTimeout(() => {
+                        const llmResponse = `LLM: As an AI, I've processed your request regarding "${prompt.substring(0, 20)}...". The simulated response is positive.`;
+                        ui.logChat(llmResponse, 'llm');
+                        ui.showFeedback();
+                    }, 1000);
+                } else {
+                    ui.logChat(`AGI: Action blocked. Reason: ${evaluation.decision}`, 'error');
+                }
+            }
+            
+            ui.log("Ethical AGI Interface Initialized.", 'warn');
+        });
+
+    </script>
+</body>
+</html>
