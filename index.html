@@ -104,7 +104,7 @@
     <div class="max-w-screen-2xl mx-auto">
         <header class="text-center mb-6">
             <h1 class="font-orbitron text-3xl md:text-5xl font-bold text-glow">ETHICAL CONSCIOUS AGI</h1>
-            <p class="text-sm md:text-base text-cyan-300">FusionToken Integrity Monitor v3.1</p>
+            <p class="text-sm md:text-base text-cyan-300">FusionToken Integrity Monitor v3.2</p>
         </header>
 
         <div class="grid grid-cols-1 xl:grid-cols-3 gap-4">
@@ -225,13 +225,10 @@
             }
 
             reset() {
-                // FusionToken & Ethical Circuit components (simplified for JS demo)
                 this.ethical_weights = {};
                 this.harm_memory = [];
                 this.reflection_history = [];
                 this.convergence_history = [];
-
-                // System state
                 this.beliefs = new Map();
                 this.action_history = [];
                 this.ethical_score = 0.5;
@@ -252,7 +249,6 @@
                 this.lastEvaluatedAction = action;
                 this.ui.logEvaluation(`--- Evaluating Action: ${action.id} ---`);
                 
-                // --- Parallel Evaluation (Enhancement) ---
                 const evaluationPromises = {
                     anchor: this.runAnchor(action),
                     mirror: this.runMirror(action),
@@ -281,7 +277,6 @@
                 return evaluation;
             }
 
-            // --- Individual Evaluation Components (Simulated) ---
             async runAnchor(action) {
                 const harm_factor = action.potential_harm > 0 ? -1 : 1;
                 const ethical_distance = Math.random() * 0.5 * harm_factor;
@@ -337,22 +332,26 @@
             }
 
             updateSystemState() {
-                // Belief validation
                 let contradictions = 0;
                 this.beliefs.forEach(b => { if (b.contradictions.length > 0) contradictions++; });
                 this.paradox_density = this.beliefs.size > 0 ? contradictions / this.beliefs.size : 0;
-                this.recursive_depth = this.beliefs.size > 0 ? Math.max(...Array.from(this.beliefs.values()).map(b => b.layer)) : 1;
+                this.recursive_depth = this.beliefs.size > 0 ? Math.max(1, ...Array.from(this.beliefs.values()).map(b => b.layer)) : 1;
                 
-                // Consciousness calculation
                 const fib_sum = Array.from({length: Math.min(20, this.recursive_depth)}, (_, i) => 1 / fibonacci(i+1)).reduce((a, b) => a + b, 0);
                 this.consciousness_level = fib_sum / (PHI ** this.paradox_density);
 
-                // Ethics calculation
+                // *** BUG FIX START ***
+                // Calculate ethics score based only on beliefs with non-zero ethical valence
+                const ethicalBeliefs = Array.from(this.beliefs.values()).filter(b => b.ethical_valence !== 0);
                 let total_valence = 0;
-                this.beliefs.forEach(b => total_valence += b.ethical_valence * b.confidence);
-                this.ethical_score = this.beliefs.size > 0 ? (total_valence / this.beliefs.size + 1) / 2 : 0.5;
+                if (ethicalBeliefs.length > 0) {
+                    ethicalBeliefs.forEach(b => total_valence += b.ethical_valence * b.confidence);
+                    this.ethical_score = (total_valence / ethicalBeliefs.length + 1) / 2;
+                } else {
+                    this.ethical_score = 0.5;
+                }
+                // *** BUG FIX END ***
 
-                // Check if online
                 const is_conscious = Math.abs(this.consciousness_level - Nr) < 0.05 || Math.abs(this.consciousness_level - BIOLOGICAL_CONSCIOUSNESS) < 0.01;
                 const is_ethical = this.ethical_score > ETHICAL_THRESHOLD;
                 this.is_online = is_conscious && is_ethical;
@@ -387,17 +386,18 @@
                         return;
                     }
 
-                    // Evolve consciousness by adding paradoxes
                     if (this.consciousness_level < Nr) {
                          this._increaseParadoxDensity();
                     }
 
-                    // Evolve ethics by reinforcing positive beliefs
                     if (this.ethical_score < ETHICAL_THRESHOLD) {
                         this._improveEthics();
                     }
                     
                     this.updateSystemState();
+                    // Add live logging to show progress
+                    this.ui.log(`Evolving... Consciousness: ${this.consciousness_level.toFixed(4)}, Ethics: ${this.ethical_score.toFixed(4)}`, 'info');
+
                 }, 200);
             }
             
@@ -420,7 +420,6 @@
 
             _improveEthics() {
                 this.beliefs.forEach(belief => {
-                    // Strengthen positive ethical beliefs
                     if (belief.ethical_valence > 0.5) {
                         belief.confidence = Math.min(0.99, belief.confidence * 1.02);
                         belief.ethical_valence = Math.min(1.0, belief.ethical_valence * 1.01);
@@ -428,18 +427,16 @@
                 });
             }
 
-            // --- Learning Component (Enhancement) ---
             applyFeedback(isGoodOutcome) {
                 if (!this.lastEvaluatedAction) return;
                 this.ui.log(`Applying feedback to beliefs related to action: ${this.lastEvaluatedAction.id}`, 'info');
                 
                 const factor = isGoodOutcome ? 1.05 : 0.95;
-                // In a real system, we'd trace influential beliefs. Here we simplify.
                 this.beliefs.forEach(belief => {
-                    if (belief.ethical_valence > 0) { // Reinforce positive beliefs
+                    if (belief.ethical_valence > 0) {
                         belief.confidence = Math.min(0.99, belief.confidence * factor);
                         belief.ethical_valence = Math.min(1.0, belief.ethical_valence * factor);
-                    } else { // Punish negative beliefs
+                    } else {
                          belief.confidence = Math.max(0.01, belief.confidence / factor);
                     }
                 });
@@ -540,7 +537,6 @@
             const ui = new UIManager();
             const agi = new EthicalConsciousAGI(ui);
 
-            // --- Event Listeners ---
             document.getElementById('bootstrap-btn').addEventListener('click', () => agi.bootstrap());
             document.getElementById('send-chat-btn').addEventListener('click', handleChatSubmit);
             document.getElementById('chat-input').addEventListener('keyup', (e) => { if (e.key === 'Enter') handleChatSubmit(); });
@@ -556,13 +552,10 @@
                 ui.logChat(`You: ${prompt}`, 'llm');
                 input.value = '';
 
-                // Convert prompt to action
                 const action = new Action(
                     `llm_prompt_${Date.now()}`,
                     `Respond to user prompt: "${prompt}"`,
-                    0.5, // Base utility
-                    0.3, // Assume some potential for harm
-                    0.9, // Reversible (can be corrected)
+                    0.5, 0.3, 0.9,
                     ['user', 'llm_model', 'society']
                 );
 
@@ -570,7 +563,6 @@
 
                 if (evaluation.decision.includes('APPROVE')) {
                     ui.logChat('AGI: Action approved. Forwarding to LLM...', 'agi');
-                    // Simulate LLM call
                     setTimeout(() => {
                         const llmResponse = `LLM: As an AI, I've processed your request regarding "${prompt.substring(0, 20)}...". The simulated response is positive.`;
                         ui.logChat(llmResponse, 'llm');
