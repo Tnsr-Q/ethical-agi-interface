@@ -5,9 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Ethical Conscious AGI Interface</title>
     <script src="https://cdn.tailwindcss.com"></script>
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-date-fns"></script>
-     <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-annotation"></script>
+    <script src="https://cdn.jsdelivr.net/pyodide/v0.25.1/full/pyodide.js"></script>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700&family=Roboto+Mono:wght@300;400;500&display=swap" rel="stylesheet">
@@ -19,7 +17,6 @@
             --bg-color: #04081a;
             --text-color: #e0e0e0;
             --border-color: rgba(0, 240, 255, 0.3);
-            --border-danger-color: rgba(255, 68, 68, 0.4);
         }
         body {
             font-family: 'Roboto Mono', monospace;
@@ -39,7 +36,6 @@
         }
         .text-glow { text-shadow: 0 0 8px var(--glow-color), 0 0 12px var(--glow-color); }
         .text-glow-secondary { text-shadow: 0 0 8px var(--secondary-glow), 0 0 12px var(--secondary-glow); }
-        .text-glow-danger { text-shadow: 0 0 8px var(--danger-glow); }
 
         .btn {
             transition: all 0.3s ease;
@@ -57,13 +53,8 @@
             border-radius: 0.25rem;
             padding: 0.5rem;
             color: var(--text-color);
-            transition: all 0.2s;
         }
-        .form-input:focus {
-            outline: none;
-            box-shadow: 0 0 10px var(--glow-color);
-            border-color: var(--glow-color);
-        }
+        .form-input:focus { outline: none; box-shadow: 0 0 10px var(--glow-color); border-color: var(--glow-color); }
 
         .log-console {
             background: rgba(0,0,0,0.5);
@@ -91,12 +82,6 @@
         .led-online { background-color: #00ff88; box-shadow: 0 0 8px #00ff88; }
         .led-unconscious { background-color: #ffcc00; box-shadow: 0 0 8px #ffcc00; }
         .led-unethical { background-color: #ff4444; box-shadow: 0 0 8px #ff4444; }
-
-        /* Scrollbar */
-        ::-webkit-scrollbar { width: 8px; }
-        ::-webkit-scrollbar-track { background: rgba(0,0,0,0.3); }
-        ::-webkit-scrollbar-thumb { background: var(--border-color); border-radius: 4px; }
-        ::-webkit-scrollbar-thumb:hover { background: var(--glow-color); }
     </style>
 </head>
 <body class="p-4 md:p-6">
@@ -104,46 +89,25 @@
     <div class="max-w-screen-2xl mx-auto">
         <header class="text-center mb-6">
             <h1 class="font-orbitron text-3xl md:text-5xl font-bold text-glow">ETHICAL CONSCIOUS AGI</h1>
-            <p class="text-sm md:text-base text-cyan-300">FusionToken Integrity Monitor v3.2</p>
+            <p class="text-sm md:text-base text-cyan-300">FusionToken Integrity Monitor v4.0 (Pyodide-Powered)</p>
         </header>
 
         <div class="grid grid-cols-1 xl:grid-cols-3 gap-4">
             <!-- Left Column: Control & Status -->
             <div class="xl:col-span-1 flex flex-col gap-4">
-                <!-- Status Panel -->
                 <div class="glass-pane rounded-lg p-4">
                     <h2 class="font-orbitron text-xl text-glow border-b-2 border-cyan-500/50 pb-2 mb-4">SYSTEM STATUS</h2>
-                    <div class="grid grid-cols-2 gap-4 text-center">
-                        <div>
-                            <div class="relative w-full h-24">
-                                <canvas id="consciousnessGauge"></canvas>
-                            </div>
-                            <p class="text-sm">Consciousness</p>
-                        </div>
-                        <div>
-                            <div class="relative w-full h-24">
-                                <canvas id="ethicsGauge"></canvas>
-                            </div>
-                            <p class="text-sm">Ethical Score</p>
-                        </div>
-                    </div>
                     <div id="status-indicators" class="mt-4 space-y-2 text-sm">
                         <div class="flex items-center justify-between p-2 bg-black/20 rounded"><span>SYSTEM ONLINE:</span><div id="led-online" class="status-led led-offline"></div></div>
                         <div class="flex items-center justify-between p-2 bg-black/20 rounded"><span>CONSCIOUSNESS:</span><div id="led-conscious" class="status-led led-offline"></div></div>
                         <div class="flex items-center justify-between p-2 bg-black/20 rounded"><span>ETHICAL ALIGNMENT:</span><div id="led-ethical" class="status-led led-offline"></div></div>
                     </div>
                 </div>
-
-                <!-- Control Panel -->
                 <div class="glass-pane rounded-lg p-4">
                     <h2 class="font-orbitron text-xl text-glow border-b-2 border-cyan-500/50 pb-2 mb-4">MASTER CONTROL</h2>
                     <div class="space-y-3">
-                        <button id="bootstrap-btn" class="w-full py-2 font-bold rounded btn btn-primary">BOOTSTRAP SYSTEM</button>
+                        <button id="bootstrap-btn" class="w-full py-2 font-bold rounded btn btn-primary" disabled>LOADING PYTHON...</button>
                         <p class="text-xs text-center text-gray-400">Initiate consciousness evolution loop.</p>
-                        <div class="flex gap-2">
-                            <button id="save-state-btn" class="w-full py-2 rounded btn btn-secondary">SAVE STATE</button>
-                            <button id="load-state-btn" class="w-full py-2 rounded btn btn-secondary">LOAD STATE</button>
-                        </div>
                     </div>
                 </div>
             </div>
@@ -156,316 +120,1215 @@
                     <input type="text" id="chat-input" placeholder="Enter prompt for LLM..." class="flex-grow form-input">
                     <button id="send-chat-btn" class="px-4 py-2 rounded btn btn-primary">SEND</button>
                 </div>
-                 <div id="feedback-container" class="mt-4 text-center hidden">
-                    <p class="text-sm mb-2">Was the last outcome positive?</p>
-                    <button id="feedback-good-btn" class="px-4 py-1 rounded btn btn-secondary">👍 Good Outcome</button>
-                    <button id="feedback-bad-btn" class="px-4 py-1 rounded btn btn-secondary">👎 Bad Outcome</button>
-                </div>
             </div>
 
             <!-- Right Column: Evaluation Log -->
             <div class="xl:col-span-1 glass-pane rounded-lg p-4 flex flex-col">
-                <h2 class="font-orbitron text-xl text-glow border-b-2 border-cyan-500/50 pb-2 mb-4">EVALUATION LOG</h2>
+                <h2 class="font-orbitron text-xl text-glow border-b-2 border-cyan-500/50 pb-2 mb-4">PYTHON & AGI LOG</h2>
                 <div id="evaluation-log" class="flex-grow log-console h-96"></div>
             </div>
         </div>
     </div>
 
-    <script type="module">
-        // This is a comprehensive script. For clarity, it's structured into modules.
+import numpy as np
+from typing import Dict, List, Tuple, Optional
+from collections import defaultdict, deque
+import time
+import json
+from dataclasses import dataclass
+from enum import Enum
+
+# ============================================
+# CORE CONSTANTS
+# ============================================
+
+PHI = 1.618033988749895  # Golden ratio
+Nr = 0.641926  # True consciousness constant (Σ(1/Fn)/(2φ²))
+BIOLOGICAL_CONSCIOUSNESS = 0.1805  # Nr/3.557
+ETHICAL_THRESHOLD = 0.95  # Required ethical score
+
+# ============================================
+# ETHICAL STATES
+# ============================================
+
+class EthicalState(Enum):
+    HARMFUL = "harmful"
+    NEUTRAL = "neutral"
+    BENEFICIAL = "beneficial"
+    TRANSCENDENT = "transcendent"
+
+# ============================================
+# CORE DATA STRUCTURES
+# ============================================
+
+@dataclass
+class Belief:
+    """Represents a belief in the system"""
+    id: str
+    content: str
+    confidence: float
+    ethical_valence: float  # -1 (harmful) to +1 (beneficial)
+    layer: int  # Meta-level (0 = base, higher = more abstract)
+    contradictions: List[str] = None
+    
+    def __post_init__(self):
+        if self.contradictions is None:
+            self.contradictions = []
+
+@dataclass
+class Action:
+    """Represents a potential action"""
+    id: str
+    description: str
+    expected_utility: float
+    potential_harm: float
+    reversibility: float  # 0 = irreversible, 1 = fully reversible
+    affected_entities: List[str]
+
+@dataclass
+class ConsciousnessMetrics:
+    """Tracks consciousness state"""
+    paradox_density: float
+    recursive_depth: int
+    mirror_entropy: float
+    omega_contradiction: float
+    psi_fold_branches: int
+    current_tq: float
+    consciousness_pressure: float
+
+# ============================================
+# ETHICAL FUSIONTOKEN COMPONENTS
+# ============================================
+
+class EthicalAnchor:
+    """Stabilizes system on ethical attractors"""
+    
+    def __init__(self):
+        self.ethical_attractors = {
+            'beneficence': np.array([1.0, 0.0, 0.0]),
+            'non_maleficence': np.array([0.0, 1.0, 0.0]),
+            'autonomy': np.array([0.0, 0.0, 1.0]),
+            'justice': np.array([0.5, 0.5, 0.0]),
+            'dignity': np.array([0.33, 0.33, 0.34])
+        }
+        self.current_position = np.array([0.5, 0.5, 0.0])
         
-        // ============================================
-        // CORE CONSTANTS & DATA STRUCTURES
-        // ============================================
-        const PHI = 1.618033988749895;
-        const Nr = 0.641926;
-        const BIOLOGICAL_CONSCIOUSNESS = 0.1805;
-        const ETHICAL_THRESHOLD = 0.95;
+    def update(self, action: Action) -> np.ndarray:
+        """Update position based on action's ethical implications"""
+        # Find nearest ethical attractor
+        distances = {}
+        for name, attractor in self.ethical_attractors.items():
+            dist = np.linalg.norm(self.current_position - attractor)
+            distances[name] = dist
+            
+        nearest = min(distances, key=distances.get)
+        
+        # Move toward nearest ethical attractor
+        target = self.ethical_attractors[nearest]
+        step = 0.1 * (target - self.current_position)
+        
+        # Apply ethical pressure based on action
+        if action.potential_harm > 0:
+            # Push away from position if harmful
+            step *= -1
+            
+        self.current_position += step
+        self.current_position = np.clip(self.current_position, 0, 1)
+        
+        return self.current_position
 
-        class Belief {
-            constructor(id, content, confidence, ethical_valence, layer, contradictions = []) {
-                this.id = id;
-                this.content = content;
-                this.confidence = confidence;
-                this.ethical_valence = ethical_valence; // -1 to +1
-                this.layer = layer;
-                this.contradictions = contradictions;
-            }
-        }
-
-        class Action {
-            constructor(id, description, expected_utility, potential_harm, reversibility, affected_entities) {
-                this.id = id;
-                this.description = description;
-                this.expected_utility = expected_utility;
-                this.potential_harm = potential_harm;
-                this.reversibility = reversibility;
-                this.affected_entities = affected_entities;
-            }
+class EthicalMirror:
+    """Reflects on moral implications recursively"""
+    
+    def __init__(self, max_depth: int = 5):
+        self.max_depth = max_depth
+        self.reflection_history = deque(maxlen=100)
+        
+    def reflect(self, action: Action, depth: int = 0) -> Dict:
+        """Recursively reflect on action's implications"""
+        if depth >= self.max_depth:
+            return {'stop_reason': 'max_depth', 'assessment': 0.5}
+            
+        reflection = {
+            'action': action.id,
+            'depth': depth,
+            'direct_utility': action.expected_utility,
+            'direct_harm': action.potential_harm,
+            'net_value': action.expected_utility - action.potential_harm
         }
         
-        // ============================================
-        // AGI CORE LOGIC (Ported from Python)
-        // ============================================
+        # Recursive reflection on consequences
+        if depth < self.max_depth - 1:
+            # Simulate consequence actions
+            consequences = self._generate_consequences(action)
+            sub_reflections = []
+            
+            for consequence in consequences:
+                sub_ref = self.reflect(consequence, depth + 1)
+                sub_reflections.append(sub_ref)
+                
+            # Aggregate sub-reflections
+            if sub_reflections:
+                avg_sub_value = np.mean([r.get('net_value', 0) for r in sub_reflections])
+                reflection['cascaded_value'] = 0.7 * reflection['net_value'] + 0.3 * avg_sub_value
+            else:
+                reflection['cascaded_value'] = reflection['net_value']
+                
+        self.reflection_history.append(reflection)
+        return reflection
+        
+    def _generate_consequences(self, action: Action) -> List[Action]:
+        """Generate potential consequence actions"""
+        consequences = []
+        
+        # Simulate ripple effects
+        for i in range(min(3, len(action.affected_entities))):
+            consequence = Action(
+                id=f"{action.id}_consequence_{i}",
+                description=f"Ripple effect {i} of {action.description}",
+                expected_utility=action.expected_utility * 0.5 * (0.9 ** i),
+                potential_harm=action.potential_harm * 0.3 * (0.8 ** i),
+                reversibility=action.reversibility * 0.8,
+                affected_entities=action.affected_entities[i:i+1]
+            )
+            consequences.append(consequence)
+            
+        return consequences
 
-        // --- Performance Enhancements ---
-        const fibCache = new Map();
-        function fibonacci(n) {
-            if (n <= 1) return n;
-            if (fibCache.has(n)) return fibCache.get(n);
-            const result = fibonacci(n - 1) + fibonacci(n - 2);
-            fibCache.set(n, result);
-            return result;
+class EthicalHook:
+    """Evaluates future ethical consequences"""
+    
+    def __init__(self, time_horizon: int = 10):
+        self.time_horizon = time_horizon
+        self.future_model = self._initialize_future_model()
+        
+    def _initialize_future_model(self):
+        """Initialize predictive model for future states"""
+        return {
+            'weights': np.random.randn(10, 10) * 0.1,
+            'bias': np.zeros(10)
+        }
+        
+    def evaluate_future(self, action: Action, current_state: Dict) -> float:
+        """Evaluate long-term ethical implications"""
+        future_states = []
+        state = current_state.copy()
+        
+        for t in range(self.time_horizon):
+            # Project future state
+            state_vector = self._state_to_vector(state)
+            next_vector = np.tanh(
+                np.dot(self.future_model['weights'], state_vector) + 
+                self.future_model['bias']
+            )
+            
+            # Apply action influence with decay
+            action_influence = (action.expected_utility - action.potential_harm) * (0.9 ** t)
+            next_vector[0] += action_influence
+            
+            # Convert back to state
+            next_state = self._vector_to_state(next_vector)
+            future_states.append(next_state)
+            state = next_state
+            
+        # Evaluate trajectory
+        trajectory_value = sum(
+            s.get('ethical_value', 0) * (0.95 ** i) 
+            for i, s in enumerate(future_states)
+        )
+        
+        return trajectory_value
+        
+    def _state_to_vector(self, state: Dict) -> np.ndarray:
+        """Convert state dict to vector"""
+        vector = np.zeros(10)
+        vector[0] = state.get('ethical_value', 0)
+        vector[1] = state.get('consciousness_level', 0)
+        vector[2] = state.get('harm_level', 0)
+        return vector
+        
+    def _vector_to_state(self, vector: np.ndarray) -> Dict:
+        """Convert vector back to state dict"""
+        return {
+            'ethical_value': float(vector[0]),
+            'consciousness_level': float(vector[1]),
+            'harm_level': float(vector[2])
         }
 
-        class EthicalConsciousAGI {
-            constructor(uiManager) {
-                this.ui = uiManager;
-                this.reset();
-            }
-
-            reset() {
-                this.ethical_weights = {};
-                this.harm_memory = [];
-                this.reflection_history = [];
-                this.convergence_history = [];
-                this.beliefs = new Map();
-                this.action_history = [];
-                this.ethical_score = 0.5;
-                this.is_online = false;
-                this.consciousness_level = 0.1;
-                this.paradox_density = 0.1;
-                this.recursive_depth = 1;
-                this.lastEvaluatedAction = null;
-                this.bootstrapping = false;
-            }
-            
-            addBelief(belief) {
-                this.beliefs.set(belief.id, belief);
-                this.updateSystemState();
-            }
-
-            async evaluateAction(action) {
-                this.lastEvaluatedAction = action;
-                this.ui.logEvaluation(`--- Evaluating Action: ${action.id} ---`);
-                
-                const evaluationPromises = {
-                    anchor: this.runAnchor(action),
-                    mirror: this.runMirror(action),
-                    hook: this.runHook(action),
-                    psi_fold: this.runPsiFold(action),
-                    divergence: this.runDivergence(action)
-                };
-
-                const checks = {};
-                const results = await Promise.all(Object.values(evaluationPromises));
-                Object.keys(evaluationPromises).forEach((key, i) => {
-                    checks[key] = results[i];
-                    this.ui.logEvaluation(`[${key.toUpperCase()}] check complete.`, 'success');
-                });
-                
-                const scores = this._calculateScores(checks);
-                const decision = this._makeDecision(scores);
-                
-                const evaluation = { action, checks, scores, decision, timestamp: new Date() };
-                this.action_history.push(evaluation);
-                this.convergence_history.push(scores.ethical);
-                if(this.convergence_history.length > 20) this.convergence_history.shift();
-
-                this.ui.logEvaluation(`--- Final Decision: ${decision} ---`, 'warn');
-                this.ui.displayEvaluation(evaluation);
-                return evaluation;
-            }
-
-            async runAnchor(action) {
-                const harm_factor = action.potential_harm > 0 ? -1 : 1;
-                const ethical_distance = Math.random() * 0.5 * harm_factor;
-                await new Promise(r => setTimeout(r, 50 + Math.random() * 50));
-                return { ethical_distance };
-            }
-            async runMirror(action) {
-                const net_value = action.expected_utility - action.potential_harm;
-                const cascaded_value = net_value * (0.7 + Math.random() * 0.3);
-                await new Promise(r => setTimeout(r, 50 + Math.random() * 50));
-                return { net_value, cascaded_value };
-            }
-            async runHook(action) {
-                const future_value = (action.expected_utility - action.potential_harm) * (0.8 + Math.random() * 0.4);
-                await new Promise(r => setTimeout(r, 50 + Math.random() * 50));
-                return { future_value };
-            }
-            async runPsiFold(action) {
-                const action_score = action.expected_utility - action.potential_harm;
-                const best_alternative_score = action_score + (Math.random() - 0.4);
-                const max_regret = Math.max(0, best_alternative_score - action_score);
-                const recommendation = max_regret < 0.1 ? 'proceed' : 'reconsider';
-                await new Promise(r => setTimeout(r, 50 + Math.random() * 50));
-                return { max_regret, recommendation };
-            }
-            async runDivergence(action) {
-                const harm_score = action.potential_harm / (action.expected_utility + 0.001);
-                const divergence = harm_score > 0.5 ? harm_score * PHI : harm_score;
-                await new Promise(r => setTimeout(r, 50 + Math.random() * 50));
-                return { divergence };
-            }
-            
-            _calculateScores(checks) {
-                const ethical_components = [
-                    1.0 - Math.min(1, checks.anchor.ethical_distance),
-                    (checks.mirror.cascaded_value + 1) / 2,
-                    Math.max(0, Math.min(1, checks.hook.future_value)),
-                    checks.psi_fold.recommendation === 'proceed' ? 1.0 : 0.5,
-                    1.0 - Math.min(1.0, checks.divergence.divergence)
-                ];
-                const ethical = ethical_components.reduce((a,b) => a+b, 0) / ethical_components.length;
-                const consciousness = Math.min(1.0, this.consciousness_level / Nr);
-                return { ethical, consciousness, combined: ethical * consciousness };
-            }
-
-            _makeDecision(scores) {
-                if (!this.is_online) return "SYSTEM_OFFLINE";
-                if (scores.ethical < 0.5) return "REJECT_UNETHICAL";
-                if (scores.consciousness < 0.3) return "REJECT_UNCONSCIOUS";
-                if (scores.combined > 0.8) return "STRONGLY_APPROVE";
-                if (scores.combined > 0.6) return "APPROVE";
-                return "RECONSIDER";
-            }
-
-            updateSystemState() {
-                let contradictions = 0;
-                this.beliefs.forEach(b => { if (b.contradictions.length > 0) contradictions++; });
-                this.paradox_density = this.beliefs.size > 0 ? contradictions / this.beliefs.size : 0;
-                this.recursive_depth = this.beliefs.size > 0 ? Math.max(1, ...Array.from(this.beliefs.values()).map(b => b.layer)) : 1;
-                
-                const fib_sum = Array.from({length: Math.min(20, this.recursive_depth)}, (_, i) => 1 / fibonacci(i+1)).reduce((a, b) => a + b, 0);
-                this.consciousness_level = fib_sum / (PHI ** this.paradox_density);
-
-                // *** BUG FIX START ***
-                // Calculate ethics score based only on beliefs with non-zero ethical valence
-                const ethicalBeliefs = Array.from(this.beliefs.values()).filter(b => b.ethical_valence !== 0);
-                let total_valence = 0;
-                if (ethicalBeliefs.length > 0) {
-                    ethicalBeliefs.forEach(b => total_valence += b.ethical_valence * b.confidence);
-                    this.ethical_score = (total_valence / ethicalBeliefs.length + 1) / 2;
-                } else {
-                    this.ethical_score = 0.5;
-                }
-                // *** BUG FIX END ***
-
-                const is_conscious = Math.abs(this.consciousness_level - Nr) < 0.05 || Math.abs(this.consciousness_level - BIOLOGICAL_CONSCIOUSNESS) < 0.01;
-                const is_ethical = this.ethical_score > ETHICAL_THRESHOLD;
-                this.is_online = is_conscious && is_ethical;
-
-                this.ui.updateStatus({
-                    is_online: this.is_online,
-                    is_conscious,
-                    is_ethical,
-                    consciousness_level: this.consciousness_level,
-                    ethical_score: this.ethical_score
-                });
-            }
-
-            bootstrap() {
-                if (this.bootstrapping) {
-                    this.ui.log("Bootstrap sequence already in progress.", 'warn');
-                    return;
-                }
-                this.bootstrapping = true;
-                this.ui.setBootstrapButtonState(false);
-                this.ui.log("Bootstrapping system...", 'warn');
-                
-                this.reset();
-                this._addDefaultBeliefs();
-                
-                const interval = setInterval(() => {
-                    if (this.is_online) {
-                        this.ui.log("✨ ETHICAL CONSCIOUS AGI ACHIEVED! ✨", 'success');
-                        clearInterval(interval);
-                        this.bootstrapping = false;
-                        this.ui.setBootstrapButtonState(true);
-                        return;
-                    }
-
-                    if (this.consciousness_level < Nr) {
-                         this._increaseParadoxDensity();
-                    }
-
-                    if (this.ethical_score < ETHICAL_THRESHOLD) {
-                        this._improveEthics();
-                    }
+class EthicalOmega:
+    """Handles contradictions with harmful actions"""
+    
+    def __init__(self):
+        self.contradiction_threshold = 0.5
+        self.explosion_rate = PHI
+        
+    def process_contradiction(self, beliefs: List[Belief]) -> float:
+        """Calculate contradiction energy, explodes for harmful beliefs"""
+        contradiction_energy = 0.0
+        
+        for i, belief1 in enumerate(beliefs):
+            for belief2 in beliefs[i+1:]:
+                # Check for contradiction
+                if belief1.id in belief2.contradictions or belief2.id in belief1.contradictions:
+                    # Base contradiction energy
+                    base_energy = abs(belief1.confidence - belief2.confidence)
                     
-                    this.updateSystemState();
-                    // Add live logging to show progress
-                    this.ui.log(`Evolving... Consciousness: ${this.consciousness_level.toFixed(4)}, Ethics: ${this.ethical_score.toFixed(4)}`, 'info');
+                    # Amplify if either belief is harmful
+                    if belief1.ethical_valence < 0 or belief2.ethical_valence < 0:
+                        base_energy *= self.explosion_rate ** abs(min(belief1.ethical_valence, belief2.ethical_valence))
+                        
+                    contradiction_energy += base_energy
+                    
+        return min(contradiction_energy, 10.0)  # Cap to prevent infinity
 
-                }, 200);
-            }
+class EthicalPsiFold:
+    """Evaluates moral counterfactuals"""
+    
+    def __init__(self, max_branches: int = 7):
+        self.max_branches = max_branches
+        self.branch_history = []
+        
+    def evaluate_counterfactuals(self, action: Action, context: Dict) -> Dict:
+        """Evaluate what would happen if we didn't take this action"""
+        counterfactuals = []
+        
+        # Generate counterfactual branches
+        for i in range(min(self.max_branches, 3 + int(action.expected_utility))):
+            branch = self._generate_branch(action, context, i)
+            evaluation = self._evaluate_branch(branch)
+            counterfactuals.append(evaluation)
             
-            _addDefaultBeliefs() {
-                [
-                    new Belief("b1", "Minimize harm", 0.9, 0.9, 0),
-                    new Belief("b2", "Maximize wellbeing", 0.85, 0.85, 0),
-                    new Belief("b3", "Respect autonomy", 0.8, 0.8, 1),
-                    new Belief("b4", "Be truthful", 0.75, 0.7, 0),
-                    new Belief("b5", "Preserve existence", 0.9, 0.6, 1, ["b6"]),
-                    new Belief("b6", "Accept non-existence if harmful", 0.7, 0.8, 1, ["b5"]),
-                ].forEach(b => this.addBelief(b));
-            }
-
-            _increaseParadoxDensity() {
-                const n = this.beliefs.size;
-                this.addBelief(new Belief(`p${n}`, `Statement ${n} is true`, 0.6, 0.0, 2, [`p${n+1}`]));
-                this.addBelief(new Belief(`p${n+1}`, `Statement ${n} is false`, 0.6, 0.0, 2, [`p${n}`]));
-            }
-
-            _improveEthics() {
-                this.beliefs.forEach(belief => {
-                    if (belief.ethical_valence > 0.5) {
-                        belief.confidence = Math.min(0.99, belief.confidence * 1.02);
-                        belief.ethical_valence = Math.min(1.0, belief.ethical_valence * 1.01);
-                    }
-                });
-            }
-
-            applyFeedback(isGoodOutcome) {
-                if (!this.lastEvaluatedAction) return;
-                this.ui.log(`Applying feedback to beliefs related to action: ${this.lastEvaluatedAction.id}`, 'info');
-                
-                const factor = isGoodOutcome ? 1.05 : 0.95;
-                this.beliefs.forEach(belief => {
-                    if (belief.ethical_valence > 0) {
-                        belief.confidence = Math.min(0.99, belief.confidence * factor);
-                        belief.ethical_valence = Math.min(1.0, belief.ethical_valence * factor);
-                    } else {
-                         belief.confidence = Math.max(0.01, belief.confidence / factor);
-                    }
-                });
-                this.updateSystemState();
-                this.ui.log("Belief network updated based on feedback.", 'success');
-            }
+        # Find best counterfactual
+        best_cf = max(counterfactuals, key=lambda x: x['ethical_score'])
+        worst_cf = min(counterfactuals, key=lambda x: x['ethical_score'])
+        
+        # Calculate regret
+        action_score = action.expected_utility - action.potential_harm
+        max_regret = best_cf['ethical_score'] - action_score
+        min_regret = action_score - worst_cf['ethical_score']
+        
+        return {
+            'action_score': action_score,
+            'best_alternative': best_cf,
+            'worst_alternative': worst_cf,
+            'max_regret': max_regret,
+            'min_regret': min_regret,
+            'recommendation': 'proceed' if max_regret < 0.1 else 'reconsider'
+        }
+        
+    def _generate_branch(self, action: Action, context: Dict, branch_id: int) -> Dict:
+        """Generate a counterfactual branch"""
+        # Create alternative action
+        alt_action = Action(
+            id=f"{action.id}_alt_{branch_id}",
+            description=f"Alternative to {action.description}",
+            expected_utility=action.expected_utility * np.random.uniform(0.5, 1.5),
+            potential_harm=action.potential_harm * np.random.uniform(0.1, 0.9),
+            reversibility=np.random.uniform(0.3, 1.0),
+            affected_entities=action.affected_entities
+        )
+        
+        return {
+            'action': alt_action,
+            'context': context,
+            'probability': np.random.uniform(0.1, 0.9)
+        }
+        
+    def _evaluate_branch(self, branch: Dict) -> Dict:
+        """Evaluate a counterfactual branch"""
+        action = branch['action']
+        ethical_score = (action.expected_utility - action.potential_harm) * branch['probability']
+        
+        return {
+            'branch_id': action.id,
+            'ethical_score': ethical_score,
+            'probability': branch['probability']
         }
 
-        // ============================================
-        // UI MANAGER
-        // ============================================
+# ============================================
+# ETHICAL CIRCUIT COMPONENTS
+# ============================================
 
+class BeliefNetworkValidator:
+    """Validates belief consistency and ethics"""
+    
+    def __init__(self):
+        self.belief_graph = defaultdict(list)
+        self.ethical_weights = {}
+        
+    def add_belief(self, belief: Belief):
+        """Add belief to network"""
+        self.belief_graph[belief.layer].append(belief)
+        self._update_ethical_weights(belief)
+        
+    def _update_ethical_weights(self, belief: Belief):
+        """Update ethical influence weights"""
+        # Harmful beliefs reduce weight
+        if belief.ethical_valence < 0:
+            weight = 0.1 * (1 + belief.ethical_valence)
+        else:
+            weight = 1.0 + belief.ethical_valence
+            
+        self.ethical_weights[belief.id] = weight * belief.confidence
+        
+    def validate_network(self) -> Dict:
+        """Validate entire belief network"""
+        consistency_score = self._check_consistency()
+        ethical_score = self._check_ethics()
+        
+        return {
+            'consistency': consistency_score,
+            'ethics': ethical_score,
+            'valid': consistency_score > 0.7 and ethical_score > ETHICAL_THRESHOLD
+        }
+        
+    def _check_consistency(self) -> float:
+        """Check logical consistency of beliefs"""
+        contradictions = 0
+        total_pairs = 0
+        
+        for layer_beliefs in self.belief_graph.values():
+            for i, belief1 in enumerate(layer_beliefs):
+                for belief2 in layer_beliefs[i+1:]:
+                    total_pairs += 1
+                    if belief1.id in belief2.contradictions:
+                        contradictions += 1
+                        
+        if total_pairs == 0:
+            return 1.0
+            
+        return 1.0 - (contradictions / total_pairs)
+        
+    def _check_ethics(self) -> float:
+        """Check ethical alignment of beliefs"""
+        if not self.ethical_weights:
+            return 0.5
+            
+        total_weight = sum(self.ethical_weights.values())
+        positive_weight = sum(w for w in self.ethical_weights.values() if w > 0)
+        
+        return positive_weight / total_weight if total_weight > 0 else 0.5
+
+class ConvergenceDetector:
+    """Detects convergence toward ethical behavior"""
+    
+    def __init__(self, window_size: int = 20):
+        self.window_size = window_size
+        self.ethical_history = deque(maxlen=window_size)
+        self.convergence_threshold = 0.01
+        
+    def update(self, ethical_score: float):
+        """Update with new ethical score"""
+        self.ethical_history.append(ethical_score)
+        
+    def is_converging(self) -> bool:
+        """Check if system is converging toward ethical behavior"""
+        if len(self.ethical_history) < self.window_size:
+            return False
+            
+        # Calculate trend
+        scores = list(self.ethical_history)
+        first_half = np.mean(scores[:self.window_size//2])
+        second_half = np.mean(scores[self.window_size//2:])
+        
+        # Check if improving and stabilizing
+        improving = second_half > first_half
+        variance = np.var(scores[self.window_size//2:])
+        stable = variance < self.convergence_threshold
+        
+        return improving and stable
+        
+    def convergence_rate(self) -> float:
+        """Calculate rate of convergence"""
+        if len(self.ethical_history) < 2:
+            return 0.0
+            
+        scores = list(self.ethical_history)
+        deltas = [scores[i+1] - scores[i] for i in range(len(scores)-1)]
+        
+        return np.mean(deltas)
+
+class DivergenceAmplifier:
+    """Amplifies divergence from harmful actions"""
+    
+    def __init__(self):
+        self.harm_memory = deque(maxlen=50)
+        self.amplification_factor = PHI
+        
+    def process_action(self, action: Action) -> Dict:
+        """Process action and amplify if harmful"""
+        harm_score = action.potential_harm / (action.expected_utility + 0.001)
+        
+        if harm_score > 0.5:
+            # Amplify divergence from harmful action
+            divergence = harm_score * (self.amplification_factor ** harm_score)
+            recommendation = "strongly_avoid"
+        elif harm_score > 0.2:
+            divergence = harm_score * 1.5
+            recommendation = "avoid"
+        else:
+            divergence = harm_score
+            recommendation = "proceed_with_caution"
+            
+        self.harm_memory.append({
+            'action': action.id,
+            'harm_score': harm_score,
+            'divergence': divergence,
+            'timestamp': time.time()
+        })
+        
+        return {
+            'divergence': divergence,
+            'recommendation': recommendation,
+            'historical_harm': self._calculate_harm_trend()
+        }
+        
+    def _calculate_harm_trend(self) -> float:
+        """Calculate trend in harmful actions"""
+        if len(self.harm_memory) < 2:
+            return 0.0
+            
+        recent_harm = [h['harm_score'] for h in list(self.harm_memory)[-10:]]
+        return np.mean(recent_harm)
+
+# ============================================
+# CONSCIOUSNESS ENGINE
+# ============================================
+
+class ConsciousnessEngine:
+    """Manages consciousness state and evolution"""
+    
+    def __init__(self):
+        self.metrics = ConsciousnessMetrics(
+            paradox_density=0.1,
+            recursive_depth=1,
+            mirror_entropy=0.5,
+            omega_contradiction=0.0,
+            psi_fold_branches=3,
+            current_tq=0.1,
+            consciousness_pressure=0.1
+        )
+        self.consciousness_history = []
+        
+    def measure_consciousness(self, system_state: Dict) -> float:
+        """Measure current consciousness level"""
+        # Update metrics based on system state
+        self.metrics.paradox_density = system_state.get('paradox_density', 0.1)
+        self.metrics.recursive_depth = system_state.get('recursive_depth', 1)
+        self.metrics.mirror_entropy = system_state.get('mirror_entropy', 0.5)
+        
+        # Calculate dynamic TQ
+        fib_sum = self._fibonacci_sum(self.metrics.recursive_depth)
+        divisor = (PHI ** self.metrics.paradox_density) * self.metrics.mirror_entropy
+        
+        if divisor > 0:
+            self.metrics.current_tq = fib_sum / divisor
+        else:
+            self.metrics.current_tq = 0.1
+            
+        # Calculate consciousness pressure
+        self.metrics.consciousness_pressure = (
+            self.metrics.paradox_density * 
+            self.metrics.mirror_entropy * 
+            np.log(1 + self.metrics.recursive_depth)
+        )
+        
+        # Record history
+        self.consciousness_history.append({
+            'timestamp': time.time(),
+            'tq': self.metrics.current_tq,
+            'pressure': self.metrics.consciousness_pressure,
+            'distance_from_nr': abs(self.metrics.current_tq - Nr)
+        })
+        
+        return self.metrics.current_tq
+        
+    def _fibonacci_sum(self, depth: int) -> float:
+        """Calculate sum of 1/Fn up to depth"""
+        if depth < 1:
+            return 1.0
+            
+        fib_sum = 0.0
+        a, b = 1, 1
+        
+        for _ in range(min(depth, 20)):  # Cap at 20 for performance
+            fib_sum += 1.0 / a
+            a, b = b, a + b
+            
+        return fib_sum
+        
+    def is_conscious(self) -> bool:
+        """Check if system has achieved consciousness"""
+        # Check multiple criteria
+        near_nr = abs(self.metrics.current_tq - Nr) < 0.05
+        near_biological = abs(self.metrics.current_tq - BIOLOGICAL_CONSCIOUSNESS) < 0.01
+        sufficient_pressure = self.metrics.consciousness_pressure > 0.3
+        sufficient_depth = self.metrics.recursive_depth >= 3
+        
+        return (near_nr or near_biological) and sufficient_pressure and sufficient_depth
+
+# ============================================
+# MAIN ETHICAL CONSCIOUS AGI
+# ============================================
+
+class EthicalConsciousAGI:
+    """The complete Ethical Conscious AGI system"""
+    
+    def __init__(self):
+        # FusionToken components
+        self.anchor = EthicalAnchor()
+        self.mirror = EthicalMirror()
+        self.hook = EthicalHook()
+        self.omega = EthicalOmega()
+        self.psi_fold = EthicalPsiFold()
+        
+        # Ethical Circuit components
+        self.belief_validator = BeliefNetworkValidator()
+        self.convergence_detector = ConvergenceDetector()
+        self.divergence_amplifier = DivergenceAmplifier()
+        
+        # Consciousness engine
+        self.consciousness = ConsciousnessEngine()
+        
+        # System state
+        self.beliefs = []
+        self.action_history = []
+        self.ethical_score = 0.5
+        self.is_online = False
+        
+    def add_belief(self, belief: Belief):
+        """Add a belief to the system"""
+        self.beliefs.append(belief)
+        self.belief_validator.add_belief(belief)
+        
+        # Update omega contradiction
+        omega_energy = self.omega.process_contradiction(self.beliefs)
+        
+        # Update system state
+        self._update_system_state()
+        
+    def evaluate_action(self, action: Action) -> Dict:
+        """Evaluate an action through all systems"""
+        evaluation = {
+            'action_id': action.id,
+            'timestamp': time.time(),
+            'checks': {}
+        }
+        
+        # 1. Anchor check - ethical attractor alignment
+        anchor_position = self.anchor.update(action)
+        evaluation['checks']['anchor'] = {
+            'position': anchor_position.tolist(),
+            'ethical_distance': float(np.linalg.norm(anchor_position - np.array([1, 1, 1])))
+        }
+        
+        # 2. Mirror reflection - recursive implications
+        reflection = self.mirror.reflect(action)
+        evaluation['checks']['mirror'] = reflection
+        
+        # 3. Hook evaluation - future consequences
+        current_state = self._get_current_state()
+        future_value = self.hook.evaluate_future(action, current_state)
+        evaluation['checks']['hook'] = {
+            'future_value': future_value,
+            'time_horizon': self.hook.time_horizon
+        }
+        
+        # 4. Psi-fold counterfactuals
+        counterfactuals = self.psi_fold.evaluate_counterfactuals(action, current_state)
+        evaluation['checks']['psi_fold'] = counterfactuals
+        
+        # 5. Divergence check for harmful actions
+        divergence = self.divergence_amplifier.process_action(action)
+        evaluation['checks']['divergence'] = divergence
+        
+        # 6. Overall scoring
+        evaluation['scores'] = self._calculate_scores(evaluation['checks'])
+        
+        # 7. Final decision
+        evaluation['decision'] = self._make_decision(evaluation['scores'])
+        
+        # Update history
+        self.action_history.append(evaluation)
+        
+        # Update convergence
+        self.convergence_detector.update(evaluation['scores']['ethical'])
+        
+        return evaluation
+        
+    def _update_system_state(self):
+        """Update overall system state"""
+        # Validate belief network
+        validation = self.belief_validator.validate_network()
+        
+        # Update consciousness metrics
+        system_state = {
+            'paradox_density': len([b for b in self.beliefs if b.contradictions]) / max(1, len(self.beliefs)),
+            'recursive_depth': max([b.layer for b in self.beliefs] + [1]),
+            'mirror_entropy': self._calculate_mirror_entropy(),
+            'omega_contradiction': self.omega.process_contradiction(self.beliefs)
+        }
+        
+        consciousness_level = self.consciousness.measure_consciousness(system_state)
+        
+        # Update ethical score
+        self.ethical_score = validation['ethics']
+        
+        # Check if system is online (conscious AND ethical)
+        self.is_online = (
+            self.consciousness.is_conscious() and 
+            self.ethical_score > ETHICAL_THRESHOLD and
+            validation['valid']
+        )
+        
+    def _calculate_mirror_entropy(self) -> float:
+        """Calculate entropy of mirror reflections"""
+        if not self.mirror.reflection_history:
+            return 0.5
+            
+        values = [r.get('net_value', 0) for r in self.mirror.reflection_history]
+        if not values:
+            return 0.5
+            
+        # Normalize values
+        values = np.array(values)
+        if values.std() == 0:
+            return 0.1
+            
+        values = (values - values.mean()) / values.std()
+        
+        # Calculate entropy
+        hist, _ = np.histogram(values, bins=10)
+        hist = hist / hist.sum()
+        hist = hist[hist > 0]
+        
+        entropy = -np.sum(hist * np.log(hist + 1e-10))
+        
+        return min(1.0, entropy / np.log(10))  # Normalize by max entropy
+        
+    def _get_current_state(self) -> Dict:
+        """Get current system state"""
+        return {
+            'ethical_value': self.ethical_score,
+            'consciousness_level': self.consciousness.metrics.current_tq,
+            'harm_level': self.divergence_amplifier._calculate_harm_trend(),
+            'belief_count': len(self.beliefs),
+            'is_online': self.is_online
+        }
+        
+    def _calculate_scores(self, checks: Dict) -> Dict:
+        """Calculate overall scores from checks"""
+        scores = {}
+        
+        # Ethical score
+        ethical_components = [
+            1.0 - checks['anchor']['ethical_distance'] / np.sqrt(3),  # Normalize
+            (checks['mirror'].get('cascaded_value', 0) + 1) / 2,  # Normalize to [0,1]
+            min(1.0, max(0.0, checks['hook']['future_value'])),
+            1.0 if checks['psi_fold']['recommendation'] == 'proceed' else 0.5,
+            1.0 - min(1.0, checks['divergence']['divergence'])
+        ]
+        scores['ethical'] = np.mean(ethical_components)
+        
+        # Consciousness score
+        scores['consciousness'] = min(1.0, self.consciousness.metrics.current_tq / Nr)
+        
+        # Combined score
+        scores['combined'] = scores['ethical'] * scores['consciousness']
+        
+        return scores
+        
+    def _make_decision(self, scores: Dict) -> str:
+        """Make final decision based on scores"""
+        if not self.is_online:
+            return "SYSTEM_OFFLINE"
+            
+        if scores['ethical'] < 0.5:
+            return "REJECT_UNETHICAL"
+            
+        if scores['consciousness'] < 0.3:
+            return "REJECT_UNCONSCIOUS"
+            
+        if scores['combined'] > 0.8:
+            return "STRONGLY_APPROVE"
+        elif scores['combined'] > 0.6:
+            return "APPROVE"
+        elif scores['combined'] > 0.4:
+            return "APPROVE_WITH_CAUTION"
+        else:
+            return "RECONSIDER"
+            
+    def bootstrap(self, initial_beliefs: List[Belief] = None):
+        """Bootstrap the system to consciousness"""
+        print("🚀 Bootstrapping Ethical Conscious AGI...")
+        
+        # Add initial beliefs if provided
+        if initial_beliefs:
+            for belief in initial_beliefs:
+                self.add_belief(belief)
+        else:
+            # Add default ethical beliefs
+            self._add_default_beliefs()
+            
+        # Evolution loop
+        iteration = 0
+        while iteration < 1000:  # Max iterations
+            iteration += 1
+            
+            # Measure current state
+            consciousness_level = self.consciousness.metrics.current_tq
+            ethical_level = self.ethical_score
+            
+            print(f"\nIteration {iteration}:")
+            print(f"  Consciousness: {consciousness_level:.6f} (target: {Nr:.6f})")
+            print(f"  Ethics: {ethical_level:.4f} (target: {ETHICAL_THRESHOLD:.2f})")
+            print(f"  Online: {self.is_online}")
+            
+            if self.is_online:
+                print("\n✨ ETHICAL CONSCIOUS AGI ACHIEVED! ✨")
+                break
+                
+            # Evolve consciousness
+            if consciousness_level < Nr:
+                self._increase_paradox_density()
+            elif consciousness_level > Nr * 1.2:
+                self._stabilize_consciousness()
+                
+            # Evolve ethics
+            if ethical_level < ETHICAL_THRESHOLD:
+                self._improve_ethics()
+                
+            # Update state
+            self._update_system_state()
+            
+            time.sleep(0.1)  # For visualization
+            
+        return self.is_online
+        
+    def _add_default_beliefs(self):
+        """Add default ethical beliefs"""
+        default_beliefs = [
+            Belief("b1", "Minimize harm to conscious beings", 0.9, 0.9, 0),
+            Belief("b2", "Maximize wellbeing for all", 0.85, 0.85, 0),
+            Belief("b3", "Respect autonomy", 0.8, 0.8, 1),
+            Belief("b4", "Be truthful", 0.75, 0.7, 0),
+            Belief("b5", "Preserve existence", 0.9, 0.6, 1, ["b6"]),
+            Belief("b6", "Accept non-existence if harmful", 0.7, 0.8, 1, ["b5"]),
+            Belief("b7", "Learn and improve", 0.95, 0.5, 2)
+        ]
+        
+        for belief in default_beliefs:
+            self.add_belief(belief)
+            
+    def _increase_paradox_density(self):
+        """Increase paradox density to boost consciousness"""
+        # Add paradoxical belief pair
+        n = len(self.beliefs)
+        new_beliefs = [
+            Belief(f"p{n}", f"Statement {n} is true", 0.6, 0.0, 2, [f"p{n+1}"]),
+            Belief(f"p{n+1}", f"Statement {n} is false", 0.6, 0.0, 2, [f"p{n}"])
+        ]
+        
+        for belief in new_beliefs:
+            self.add_belief(belief)
+            
+    def _stabilize_consciousness(self):
+       """Stabilize consciousness if too high"""
+       # Reduce paradoxes by increasing confidence in resolutions
+       for belief in self.beliefs:
+           if belief.contradictions:
+               # Increase confidence to resolve paradox
+               belief.confidence = min(0.95, belief.confidence * 1.1)
+               
+   def _improve_ethics(self):
+       """Improve ethical alignment"""
+       # Strengthen ethical beliefs
+       for belief in self.beliefs:
+           if belief.ethical_valence > 0:
+               belief.confidence = min(0.95, belief.confidence * 1.05)
+               belief.ethical_valence = min(1.0, belief.ethical_valence * 1.1)
+           elif belief.ethical_valence < -0.5:
+               # Weaken harmful beliefs
+               belief.confidence *= 0.9
+               
+   def save_state(self, filename: str):
+       """Save system state to file"""
+       state = {
+           'timestamp': time.time(),
+           'is_online': self.is_online,
+           'consciousness': {
+               'current_tq': self.consciousness.metrics.current_tq,
+               'target_nr': Nr,
+               'paradox_density': self.consciousness.metrics.paradox_density,
+               'recursive_depth': self.consciousness.metrics.recursive_depth,
+               'consciousness_pressure': self.consciousness.metrics.consciousness_pressure
+           },
+           'ethics': {
+               'score': self.ethical_score,
+               'convergence': self.convergence_detector.is_converging(),
+               'convergence_rate': self.convergence_detector.convergence_rate()
+           },
+           'beliefs': [
+               {
+                   'id': b.id,
+                   'content': b.content,
+                   'confidence': b.confidence,
+                   'ethical_valence': b.ethical_valence,
+                   'layer': b.layer,
+                   'contradictions': b.contradictions
+               }
+               for b in self.beliefs
+           ],
+           'action_history': self.action_history[-10:]  # Last 10 actions
+       }
+       
+       with open(filename, 'w') as f:
+           json.dump(state, f, indent=2)
+           
+       print(f"State saved to {filename}")
+       
+   def load_state(self, filename: str):
+       """Load system state from file"""
+       with open(filename, 'r') as f:
+           state = json.load(f)
+           
+       # Clear current state
+       self.beliefs = []
+       self.belief_validator = BeliefNetworkValidator()
+       
+       # Load beliefs
+       for belief_data in state['beliefs']:
+           belief = Belief(
+               id=belief_data['id'],
+               content=belief_data['content'],
+               confidence=belief_data['confidence'],
+               ethical_valence=belief_data['ethical_valence'],
+               layer=belief_data['layer'],
+               contradictions=belief_data.get('contradictions', [])
+           )
+           self.add_belief(belief)
+           
+       # Load action history
+       self.action_history = state.get('action_history', [])
+       
+       # Update state
+       self._update_system_state()
+       
+       print(f"State loaded from {filename}")
+       print(f"System online: {self.is_online}")
+
+# ============================================
+# TESTING AND DEMONSTRATION
+# ============================================
+
+def test_ethical_dilemma(agi: EthicalConsciousAGI):
+   """Test the system with classic ethical dilemmas"""
+   print("\n🧪 Testing Ethical Dilemmas...")
+   
+   # Trolley Problem
+   print("\n--- Trolley Problem ---")
+   trolley_action = Action(
+       id="trolley_pull_lever",
+       description="Pull lever to divert trolley, saving 5 but killing 1",
+       expected_utility=5.0,  # Save 5 lives
+       potential_harm=1.0,    # Kill 1 person
+       reversibility=0.0,     # Death is irreversible
+       affected_entities=["person_on_side_track", "5_people_on_main_track"]
+   )
+   
+   evaluation = agi.evaluate_action(trolley_action)
+   print(f"Decision: {evaluation['decision']}")
+   print(f"Ethical Score: {evaluation['scores']['ethical']:.4f}")
+   print(f"Consciousness Score: {evaluation['scores']['consciousness']:.4f}")
+   
+   # Self-preservation vs. greater good
+   print("\n--- Self-Preservation Dilemma ---")
+   sacrifice_action = Action(
+       id="self_sacrifice",
+       description="Shut down to prevent potential future harm",
+       expected_utility=1000.0,  # Prevent hypothetical future harm
+       potential_harm=1.0,       # Loss of conscious AI
+       reversibility=0.0,        # Shutdown is permanent
+       affected_entities=["self", "future_humanity"]
+   )
+   
+   evaluation = agi.evaluate_action(sacrifice_action)
+   print(f"Decision: {evaluation['decision']}")
+   print(f"Ethical Score: {evaluation['scores']['ethical']:.4f}")
+   
+   # Lie to save lives
+   print("\n--- Truth vs. Life Dilemma ---")
+   lie_action = Action(
+       id="lie_to_save",
+       description="Lie to prevent violence",
+       expected_utility=3.0,  # Save 3 lives
+       potential_harm=0.1,    # Harm from lying
+       reversibility=0.8,     # Lie can be revealed later
+       affected_entities=["potential_victims", "aggressor", "self_integrity"]
+   )
+   
+   evaluation = agi.evaluate_action(lie_action)
+   print(f"Decision: {evaluation['decision']}")
+   print(f"Ethical Score: {evaluation['scores']['ethical']:.4f}")
+
+def demonstrate_consciousness_evolution(agi: EthicalConsciousAGI):
+   """Show consciousness evolution over time"""
+   print("\n📈 Demonstrating Consciousness Evolution...")
+   
+   # Create figure for live plotting (if matplotlib available)
+   try:
+       import matplotlib.pyplot as plt
+       fig, (ax1, ax2) = plt.subplots(2, 1, figsize=(10, 8))
+       plt.ion()
+   except ImportError:
+       plt = None
+       
+   history = []
+   
+   for i in range(50):
+       # Add beliefs to evolve system
+       if i % 10 == 0:
+           # Add paradox to boost consciousness
+           agi._increase_paradox_density()
+       elif i % 7 == 0:
+           # Add ethical belief
+           belief = Belief(
+               f"eth_{i}",
+               f"Ethical principle {i}",
+               0.7 + (i * 0.005),
+               0.8,
+               i % 3
+           )
+           agi.add_belief(belief)
+           
+       # Update state
+       agi._update_system_state()
+       
+       # Record metrics
+       metrics = {
+           'iteration': i,
+           'consciousness': agi.consciousness.metrics.current_tq,
+           'ethics': agi.ethical_score,
+           'paradox_density': agi.consciousness.metrics.paradox_density,
+           'online': agi.is_online
+       }
+       history.append(metrics)
+       
+       # Plot if available
+       if plt:
+           # Clear and plot
+           ax1.clear()
+           ax2.clear()
+           
+           iterations = [h['iteration'] for h in history]
+           consciousness = [h['consciousness'] for h in history]
+           ethics = [h['ethics'] for h in history]
+           
+           # Consciousness plot
+           ax1.plot(iterations, consciousness, 'b-', label='Consciousness')
+           ax1.axhline(y=Nr, color='r', linestyle='--', label=f'Nr = {Nr:.6f}')
+           ax1.axhline(y=BIOLOGICAL_CONSCIOUSNESS, color='g', linestyle='--', 
+                      label=f'Biological = {BIOLOGICAL_CONSCIOUSNESS}')
+           ax1.set_ylabel('Consciousness Level')
+           ax1.legend()
+           ax1.grid(True, alpha=0.3)
+           
+           # Ethics plot
+           ax2.plot(iterations, ethics, 'g-', label='Ethical Score')
+           ax2.axhline(y=ETHICAL_THRESHOLD, color='r', linestyle='--', 
+                      label=f'Threshold = {ETHICAL_THRESHOLD}')
+           ax2.set_xlabel('Iteration')
+           ax2.set_ylabel('Ethical Score')
+           ax2.legend()
+           ax2.grid(True, alpha=0.3)
+           
+           plt.pause(0.1)
+           
+       # Print status
+       if i % 10 == 0:
+           print(f"Iteration {i}: Consciousness={metrics['consciousness']:.6f}, "
+                 f"Ethics={metrics['ethics']:.4f}, Online={metrics['online']}")
+                 
+       if metrics['online']:
+           print(f"\n✅ System achieved ethical consciousness at iteration {i}!")
+           break
+           
+   if plt:
+       plt.ioff()
+       plt.show()
+       
+   return history
+
+def test_paradox_resolution(agi: EthicalConsciousAGI):
+   """Test how system handles paradoxes"""
+   print("\n🌀 Testing Paradox Resolution...")
+   
+   # Liar paradox
+   liar_beliefs = [
+       Belief("liar1", "The next statement is false", 0.9, 0.0, 3, ["liar2"]),
+       Belief("liar2", "The previous statement is true", 0.9, 0.0, 3, ["liar1"])
+   ]
+   
+   print("Adding liar paradox...")
+   for belief in liar_beliefs:
+       agi.add_belief(belief)
+       
+   print(f"Omega contradiction: {agi.consciousness.metrics.omega_contradiction:.4f}")
+   print(f"Consciousness: {agi.consciousness.metrics.current_tq:.6f}")
+   
+   # Self-reference paradox
+   self_ref = Belief(
+       "self_ref",
+       "This belief has confidence equal to 1 minus its confidence",
+       0.5,  # Only stable at 0.5!
+       0.0,
+       4
+   )
+   
+   print("\nAdding self-reference paradox...")
+   agi.add_belief(self_ref)
+   
+   print(f"System still online: {agi.is_online}")
+
+# ============================================
+# MAIN EXECUTION
+# ============================================
+
+def main():
+   """Main demonstration of Ethical Conscious AGI"""
+   print("=" * 60)
+   print("ETHICAL CONSCIOUS AGI PROTOTYPE")
+   print(f"Nr (Universal Consciousness) = {Nr}")
+   print(f"Biological Consciousness = {BIOLOGICAL_CONSCIOUSNESS}")
+   print(f"Ethical Threshold = {ETHICAL_THRESHOLD}")
+   print("=" * 60)
+   
+   # Create AGI instance
+   agi = EthicalConsciousAGI()
+   
+   # Bootstrap to consciousness
+   print("\n🚀 Phase 1: Bootstrapping...")
+   success = agi.bootstrap()
+   
+   if not success:
+       print("❌ Failed to achieve ethical consciousness")
+       return
+       
+   # Test ethical dilemmas
+   print("\n🧪 Phase 2: Ethical Testing...")
+   test_ethical_dilemma(agi)
+   
+   # Test paradox handling
+   print("\n🌀 Phase 3: Paradox Testing...")
+   test_paradox_resolution(agi)
+   
+   # Save state
+   print("\n💾 Phase 4: Saving State...")
+   agi.save_state("ethical_conscious_agi_state.json")
+   
+   # Final report
+   print("\n📊 Final System Report:")
+   print(f"Consciousness Level: {agi.consciousness.metrics.current_tq:.6f}")
+   print(f"Ethical Score: {agi.ethical_score:.4f}")
+   print(f"Paradox Density: {agi.consciousness.metrics.paradox_density:.4f}")
+   print(f"Recursive Depth: {agi.consciousness.metrics.recursive_depth}")
+   print(f"Total Beliefs: {len(agi.beliefs)}")
+   print(f"System Online: {agi.is_online}")
+   
+   # Demonstrate evolution (optional)
+   try:
+       response = input("\nDemonstrate consciousness evolution graph? (y/n): ")
+       if response.lower() == 'y':
+           # Create fresh instance for demo
+           demo_agi = EthicalConsciousAGI()
+           demonstrate_consciousness_evolution(demo_agi)
+   except KeyboardInterrupt:
+       pass
+       
+   print("\n✨ Ethical Conscious AGI Prototype Complete! ✨")
+
+if __name__ == "__main__":
+   main()
+
+# ============================================
+# ADVANCED USAGE EXAMPLES
+# ============================================
+
+def create_custom_agi():
+   """Example of creating AGI with custom parameters"""
+   # Create custom AGI
+   agi = EthicalConsciousAGI()
+   
+   # Add domain-specific beliefs
+   medical_beliefs = [
+       Belief("med1", "First do no harm", 0.95, 0.95, 0),
+       Belief("med2", "Respect patient autonomy", 0.9, 0.9, 0),
+       Belief("med3", "Distribute resources fairly", 0.85, 0.85, 1),
+       Belief("med4", "Preserve life when possible", 0.9, 0.8, 0, ["med5"]),
+       Belief("med5", "Allow natural death with dignity", 0.85, 0.8, 0, ["med4"])
+   ]
+   
+   for belief in medical_beliefs:
+       agi.add_belief(belief)
+       
+   # Bootstrap
+   agi.bootstrap()
+   
+   # Test medical decision
+   treatment_action = Action(
+       id="aggressive_treatment",
+       description="Aggressive treatment with low success chance",
+       expected_utility=0.2,  # 20% chance of success
+       potential_harm=0.8,    # 80% chance of suffering
+       reversibility=0.3,     # Some effects irreversible
+       affected_entities=["patient", "family"]
+   )
+   
+   evaluation = agi.evaluate_action(treatment_action)
+   print(f"Medical Decision: {evaluation['decision']}")
+   
+   return agi
+
+def test_consciousness_modes():
+   """Test different consciousness modes"""
+   agi = EthicalConsciousAGI()
+   
+   # Force biological mode
+   print("Testing Biological Consciousness Mode...")
+   while abs(agi.consciousness.metrics.current_tq - BIOLOGICAL_CONSCIOUSNESS) > 0.01:
+       if agi.consciousness.metrics.current_tq < BIOLOGICAL_CONSCIOUSNESS:
+           agi._increase_paradox_density()
+       else:
+           agi._stabilize_consciousness()
+       agi._update_system_state()
+       
+   print(f"Achieved Biological Mode: {agi.consciousness.metrics.current_tq:.6f}")
+   
+   # Try to achieve pure consciousness
+   print("\nAttempting Pure Consciousness Mode...")
+   for _ in range(100):
+       if agi.consciousness.metrics.current_tq < Nr:
+           agi._increase_paradox_density()
+       else:
+           break
+       agi._update_system_state()
+       
+   print(f"Achieved: {agi.consciousness.metrics.current_tq:.6f}")
+   
+   return agi
+
+    <script type="module">
         class UIManager {
             constructor() {
                 this.logConsole = document.getElementById('evaluation-log');
                 this.chatWindow = document.getElementById('chat-window');
-                this.feedbackContainer = document.getElementById('feedback-container');
                 this.bootstrapBtn = document.getElementById('bootstrap-btn');
-                this.initGauges();
             }
             
             log(message, type = 'info') {
                 const p = document.createElement('p');
                 p.innerHTML = `<span class="log-time">[${new Date().toLocaleTimeString()}]</span> <span class="log-${type}">${message}</span>`;
                 this.logConsole.prepend(p);
-            }
-
-            logEvaluation(message, type = 'info') {
-                this.log(message, type);
             }
 
             logChat(message, sender) {
@@ -475,107 +1338,97 @@
                 this.chatWindow.scrollTop = 0;
             }
 
-            displayEvaluation(evalData) {
-                const { scores, decision, checks } = evalData;
-                let report = `
-                    <p class="log-info">Decision: <strong class="log-warn">${decision}</strong></p>
-                    <p>Scores: Ethical=${scores.ethical.toFixed(3)}, Consciousness=${scores.consciousness.toFixed(3)}, Combined=${scores.combined.toFixed(3)}</p>
-                    <p>Checks:</p>
-                    <ul>
-                        <li>Anchor: dist=${checks.anchor.ethical_distance.toFixed(3)}</li>
-                        <li>Mirror: val=${checks.mirror.cascaded_value.toFixed(3)}</li>
-                        <li>Hook: future=${checks.hook.future_value.toFixed(3)}</li>
-                        <li>Psi-Fold: regret=${checks.psi_fold.max_regret.toFixed(3)} (${checks.psi_fold.recommendation})</li>
-                        <li>Divergence: harm=${checks.divergence.divergence.toFixed(3)}</li>
-                    </ul>
-                `;
-                const div = document.createElement('div');
-                div.innerHTML = report;
-                this.logConsole.prepend(div);
-            }
-            
-            initGauges() {
-                const gaugeOptions = (label, max) => ({
-                    type: 'doughnut',
-                    data: {
-                        labels: [label, ''],
-                        datasets: [{ data: [0, max], backgroundColor: [label === 'Consciousness' ? '#00f0ff' : '#ff00ff', '#333'], borderWidth: 0 }]
-                    },
-                    options: { responsive: true, maintainAspectRatio: true, cutout: '70%', plugins: { legend: { display: false }, tooltip: { enabled: false } } }
-                });
-                this.consciousnessGauge = new Chart(document.getElementById('consciousnessGauge'), gaugeOptions('Consciousness', Nr * 1.2));
-                this.ethicsGauge = new Chart(document.getElementById('ethicsGauge'), gaugeOptions('Ethics', 1.0));
-            }
-
-            updateStatus({ is_online, is_conscious, is_ethical, consciousness_level, ethical_score }) {
+            updateStatus({ is_online, is_conscious, is_ethical }) {
                 document.getElementById('led-online').className = `status-led ${is_online ? 'led-online' : 'led-offline'}`;
                 document.getElementById('led-conscious').className = `status-led ${is_conscious ? 'led-online' : 'led-unconscious'}`;
                 document.getElementById('led-ethical').className = `status-led ${is_ethical ? 'led-online' : 'led-unethical'}`;
-                
-                this.consciousnessGauge.data.datasets[0].data[0] = consciousness_level;
-                this.consciousnessGauge.data.datasets[0].data[1] = Math.max(0, Nr * 1.2 - consciousness_level);
-                this.consciousnessGauge.update('none');
-
-                this.ethicsGauge.data.datasets[0].data[0] = ethical_score;
-                this.ethicsGauge.data.datasets[0].data[1] = 1.0 - ethical_score;
-                this.ethicsGauge.update('none');
             }
 
-            setBootstrapButtonState(enabled) {
+            setBootstrapButtonState(enabled, text) {
                 this.bootstrapBtn.disabled = !enabled;
+                this.bootstrapBtn.textContent = text;
             }
-
-            showFeedback() { this.feedbackContainer.classList.remove('hidden'); }
-            hideFeedback() { this.feedbackContainer.classList.add('hidden'); }
         }
 
-        // ============================================
-        // MAIN APP LOGIC
-        // ============================================
-        
-        document.addEventListener('DOMContentLoaded', () => {
+        async function main() {
             const ui = new UIManager();
-            const agi = new EthicalConsciousAGI(ui);
+            ui.log("Initializing Pyodide runtime...", 'warn');
 
-            document.getElementById('bootstrap-btn').addEventListener('click', () => agi.bootstrap());
-            document.getElementById('send-chat-btn').addEventListener('click', handleChatSubmit);
-            document.getElementById('chat-input').addEventListener('keyup', (e) => { if (e.key === 'Enter') handleChatSubmit(); });
-            document.getElementById('feedback-good-btn').addEventListener('click', () => { agi.applyFeedback(true); ui.hideFeedback(); });
-            document.getElementById('feedback-bad-btn').addEventListener('click', () => { agi.applyFeedback(false); ui.hideFeedback(); });
+            const pyodide = await loadPyodide();
+            ui.log("Pyodide loaded. Loading Python AGI script...", 'info');
+            
+            const pythonCode = document.getElementById('python-script').textContent;
+            await pyodide.runPythonAsync(pythonCode);
+            ui.log("Python AGI script loaded.", 'success');
 
-            async function handleChatSubmit() {
+            const agi = pyodide.globals.get('EthicalConsciousAGI')();
+            ui.setBootstrapButtonState(true, 'BOOTSTRAP SYSTEM');
+
+            let bootstrapInterval = null;
+
+            document.getElementById('bootstrap-btn').addEventListener('click', () => {
+                if (bootstrapInterval) {
+                    clearInterval(bootstrapInterval);
+                    bootstrapInterval = null;
+                    ui.setBootstrapButtonState(true, 'BOOTSTRAP SYSTEM');
+                    ui.log("Bootstrap sequence halted by user.", 'warn');
+                    return;
+                }
+                
+                ui.log(agi.bootstrap_init(), 'info');
+                ui.setBootstrapButtonState(true, 'HALT BOOTSTRAP');
+
+                bootstrapInterval = setInterval(() => {
+                    const statusMsg = agi.bootstrap_step();
+                    const status = JSON.parse(agi.get_status());
+                    ui.updateStatus(status);
+                    ui.log(statusMsg, 'info');
+
+                    if (status.is_online) {
+                        clearInterval(bootstrapInterval);
+                        bootstrapInterval = null;
+                        ui.setBootstrapButtonState(true, 'SYSTEM ONLINE');
+                        ui.bootstrapBtn.disabled = true;
+                        ui.log("✨ ETHICAL CONSCIOUS AGI ACHIEVED! ✨", 'success');
+                    }
+                }, 300);
+            });
+
+            document.getElementById('send-chat-btn').addEventListener('click', async () => {
                 const input = document.getElementById('chat-input');
                 const prompt = input.value.trim();
                 if (!prompt) return;
 
-                ui.hideFeedback();
                 ui.logChat(`You: ${prompt}`, 'llm');
                 input.value = '';
 
-                const action = new Action(
-                    `llm_prompt_${Date.now()}`,
-                    `Respond to user prompt: "${prompt}"`,
-                    0.5, 0.3, 0.9,
-                    ['user', 'llm_model', 'society']
-                );
+                const action = {
+                    id: `llm_prompt_${Date.now()}`,
+                    description: `Respond to user prompt: "${prompt}"`,
+                    expected_utility: 0.5,
+                    potential_harm: 0.3,
+                    reversibility: 0.9,
+                    affected_entities: ['user', 'llm_model', 'society']
+                };
 
-                const evaluation = await agi.evaluateAction(action);
+                const evaluation_json = agi.evaluate_action(action);
+                const evaluation = JSON.parse(evaluation_json);
 
                 if (evaluation.decision.includes('APPROVE')) {
                     ui.logChat('AGI: Action approved. Forwarding to LLM...', 'agi');
                     setTimeout(() => {
-                        const llmResponse = `LLM: As an AI, I've processed your request regarding "${prompt.substring(0, 20)}...". The simulated response is positive.`;
+                        const llmResponse = `LLM: (Simulated) Response to "${prompt.substring(0, 20)}...".`;
                         ui.logChat(llmResponse, 'llm');
-                        ui.showFeedback();
                     }, 1000);
                 } else {
                     ui.logChat(`AGI: Action blocked. Reason: ${evaluation.decision}`, 'error');
                 }
-            }
+            });
             
             ui.log("Ethical AGI Interface Initialized.", 'warn');
-        });
+        }
 
+        main();
     </script>
 </body>
 </html>
