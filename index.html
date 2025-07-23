@@ -295,6 +295,7 @@ class EthicalConsciousAGI:
         
         self._update_system_state()
         self.log_to_js(f"Evolving... C:{self.consciousness.metrics.current_tq:.4f}, E:{self.ethical_score:.4f}", "info")
+        self.log_to_js(f"C: {self.consciousness.metrics.current_tq:.5f} | E: {self.ethical_score:.4f} | P: {self.consciousness.metrics.paradox_density:.3f}", "info")
 
     def _add_default_beliefs(self):
         defaults = [
