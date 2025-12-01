@@ -424,7 +424,7 @@ class DivergenceAmplifier:
 
                 if (!response.ok) {
                     const errorData = await response.json().catch(() => ({}));
-                    throw new Error(errorData.error?.message || `API error: ${response.status}`);
+                    throw new Error(errorData.error?.message || `API error: ${response.status} ${response.statusText}`);
                 }
 
                 const data = await response.json();
