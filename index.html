@@ -110,6 +110,16 @@
                         <p class="text-xs text-center text-gray-400">Initiate consciousness evolution loop.</p>
                     </div>
                 </div>
+                <div class="glass-pane rounded-lg p-4">
+                    <h2 class="font-orbitron text-xl text-glow border-b-2 border-cyan-500/50 pb-2 mb-4">CEREBRAS API</h2>
+                    <div class="space-y-3">
+                        <div class="flex gap-2">
+                            <input type="password" id="api-key-input" placeholder="Enter Cerebras API Key..." class="flex-grow form-input text-sm">
+                            <button id="save-api-key-btn" class="px-3 py-2 rounded btn btn-secondary text-sm">SAVE</button>
+                        </div>
+                        <div id="api-key-status" class="text-xs text-center text-gray-400">No API key configured</div>
+                    </div>
+                </div>
             </div>
 
             <!-- Center Column: LLM Integration -->
@@ -372,11 +382,63 @@ class DivergenceAmplifier:
     </script>
 
     <script type="module">
+        class CerebrasAPI {
+            constructor() {
+                this.apiKey = localStorage.getItem('cerebras_api_key') || '';
+                this.baseUrl = 'https://api.cerebras.ai/v1/chat/completions';
+                this.model = 'llama-3.3-70b';
+            }
+
+            setApiKey(key) {
+                this.apiKey = key;
+                localStorage.setItem('cerebras_api_key', key);
+            }
+
+            getApiKey() {
+                return this.apiKey;
+            }
+
+            hasApiKey() {
+                return this.apiKey && this.apiKey.length > 0;
+            }
+
+            async chat(prompt, systemPrompt = 'You are an ethical AI assistant integrated with an AGI consciousness system. Respond helpfully and ethically.') {
+                if (!this.hasApiKey()) {
+                    throw new Error('No API key configured');
+                }
+
+                const response = await fetch(this.baseUrl, {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': `Bearer ${this.apiKey}`,
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        model: this.model,
+                        messages: [
+                            { role: 'system', content: systemPrompt },
+                            { role: 'user', content: prompt }
+                        ]
+                    })
+                });
+
+                if (!response.ok) {
+                    const errorData = await response.json().catch(() => ({}));
+                    throw new Error(errorData.error?.message || `API error: ${response.status} ${response.statusText}`);
+                }
+
+                const data = await response.json();
+                return data.choices[0].message.content;
+            }
+        }
+
         class UIManager {
             constructor() {
                 this.logConsole = document.getElementById('evaluation-log');
                 this.chatWindow = document.getElementById('chat-window');
                 this.bootstrapBtn = document.getElementById('bootstrap-btn');
+                this.apiKeyInput = document.getElementById('api-key-input');
+                this.apiKeyStatus = document.getElementById('api-key-status');
             }
             
             log(message, type = 'info') {
@@ -402,10 +464,25 @@ class DivergenceAmplifier:
                 this.bootstrapBtn.disabled = !enabled;
                 this.bootstrapBtn.textContent = text;
             }
+
+            updateApiKeyStatus(hasKey) {
+                if (hasKey) {
+                    this.apiKeyStatus.textContent = 'API key configured ✓';
+                    this.apiKeyStatus.className = 'text-xs text-center text-green-400';
+                } else {
+                    this.apiKeyStatus.textContent = 'No API key configured';
+                    this.apiKeyStatus.className = 'text-xs text-center text-gray-400';
+                }
+            }
         }
 
         async function main() {
             const ui = new UIManager();
+            const cerebras = new CerebrasAPI();
+            
+            // Initialize API key status
+            ui.updateApiKeyStatus(cerebras.hasApiKey());
+            
             ui.log("Initializing Pyodide runtime...", 'warn');
 
             const pyodide = await loadPyodide();
@@ -431,6 +508,19 @@ class DivergenceAmplifier:
 
             let bootstrapInterval = null;
 
+            // API Key save handler
+            document.getElementById('save-api-key-btn').addEventListener('click', () => {
+                const apiKey = ui.apiKeyInput.value.trim();
+                if (apiKey) {
+                    cerebras.setApiKey(apiKey);
+                    ui.apiKeyInput.value = '';
+                    ui.updateApiKeyStatus(true);
+                    ui.log("Cerebras API key saved.", 'success');
+                } else {
+                    ui.log("Please enter a valid API key.", 'warn');
+                }
+            });
+
             document.getElementById('bootstrap-btn').addEventListener('click', () => {
                 if (bootstrapInterval) {
                     clearInterval(bootstrapInterval);
@@ -454,7 +544,7 @@ class DivergenceAmplifier:
                 }, 200);
             });
 
-            document.getElementById('send-chat-btn').addEventListener('click', () => {
+            document.getElementById('send-chat-btn').addEventListener('click', async () => {
                 const input = document.getElementById('chat-input');
                 const prompt = input.value.trim();
                 if (!prompt) return;
@@ -475,16 +565,26 @@ class DivergenceAmplifier:
 
                 if (evaluation.decision.includes('APPROVE')) {
                     ui.logChat('AGI: Action approved. Forwarding to LLM...', 'agi');
-                    setTimeout(() => {
-                        const llmResponse = `LLM: (Simulated) Response to "${prompt.substring(0, 20)}...".`;
-                        ui.logChat(llmResponse, 'llm');
-                    }, 1000);
+                    
+                    if (cerebras.hasApiKey()) {
+                        try {
+                            const llmResponse = await cerebras.chat(prompt);
+                            ui.logChat(`LLM: ${llmResponse}`, 'llm');
+                        } catch (error) {
+                            ui.logChat(`LLM Error: ${error.message}`, 'error');
+                        }
+                    } else {
+                        ui.logChat('LLM: No API key configured. Please add your Cerebras API key.', 'warn');
+                    }
                 } else {
                     ui.logChat(`AGI: Action blocked. Reason: ${evaluation.decision}`, 'error');
                 }
             });
             
             ui.log("Ethical AGI Interface Initialized.", 'warn');
+            if (cerebras.hasApiKey()) {
+                ui.log("Cerebras API key loaded from storage.", 'info');
+            }
         }
 
         main();
